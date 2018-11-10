@@ -1,13 +1,12 @@
 <?php
 /*
- * Plugin Name: IMS Basic Learning Tools Interoperability
+ * Plugin Name: IMS LTI 1.3
  * @name Load Blog Type
- * @abstract Processes incoming requests for IMS Basic LTI and apply wordpress with blogType parametrer. This code is developed based on Chuck Severance code
- * @author Chuck Severance
- * @author Antoni Bertran (abertranb@uoc.edu)
- * @copyright 2010-2012 Universitat Oberta de Catalunya
- * @license GPL
- * Date December 2010
+ * @abstract Processes incoming requests for IMS  1.3LTI and apply wordpress with blogType parametrer. This code is developed based on Chuck Severance code
+ * @author Antoni Bertran (antoni@tresipunt.com)
+ * @copyright 2018 3ipunt and Universitat Oberta de Catalunya
+ * @license Apache License
+ * Date November 2018
  */
 
 require_once(ABSPATH . '/wp-admin/includes/plugin.php');
