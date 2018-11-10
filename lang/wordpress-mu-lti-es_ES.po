@@ -1,0 +1,135 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: wordpress-mu-lti\n"
+"POT-Creation-Date: 2018-09-14 15:24+0100\n"
+"PO-Revision-Date: 2018-09-14 16:16+0100\n"
+"Last-Translator: Antoni Bertran <antoni@tresipunt.com>\n"
+"Language-Team: 3ipunt <antoni@tresipunt.com>\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.5.5\n"
+"X-Poedit-KeywordsList: _;gettext;gettext_noop;__;_e\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: IMSBasicLTI.php:411
+msgid "LTI: Consumers Keys"
+msgstr "LTI: Consumers y Claves"
+
+#: IMSBasicLTI.php:422
+msgid "Provider not found"
+msgstr ""
+
+#: IMSBasicLTI.php:429
+msgid "Provider Updated"
+msgstr ""
+
+#: IMSBasicLTI.php:432
+msgid "Provider Added"
+msgstr ""
+
+#: IMSBasicLTI.php:437
+msgid "Provider Deleted"
+msgstr ""
+
+#: IMSBasicLTI.php:443 IMSBasicLTI.php:453
+msgid "Search"
+msgstr ""
+
+#: IMSBasicLTI.php:446
+#, php-format
+msgid "Searching for %s"
+msgstr ""
+
+#: IMSBasicLTI.php:451
+msgid "Search:"
+msgstr ""
+
+#: IMSBasicLTI.php:464
+msgid "Edit LTI"
+msgstr ""
+
+#: IMSBasicLTI.php:466
+msgid "New LTI"
+msgstr ""
+
+#: IMSBasicLTI.php:482
+msgid "Name"
+msgstr ""
+
+#: IMSBasicLTI.php:483 IMSBasicLTI.php:672
+msgid "Consumer name"
+msgstr ""
+
+#: IMSBasicLTI.php:484 IMSBasicLTI.php:672
+msgid "Consumer key"
+msgstr ""
+
+#: IMSBasicLTI.php:485
+msgid "Secret"
+msgstr ""
+
+#: IMSBasicLTI.php:486 IMSBasicLTI.php:672
+msgid "LTI Version"
+msgstr ""
+
+#: IMSBasicLTI.php:490
+msgid "Custom username parameter"
+msgstr ""
+
+#: IMSBasicLTI.php:493
+msgid "Has custom username"
+msgstr ""
+
+#: IMSBasicLTI.php:497 IMSBasicLTI.php:672
+msgid "Enabled"
+msgstr ""
+
+#: IMSBasicLTI.php:501
+msgid "Save"
+msgstr ""
+
+#: IMSBasicLTI.php:505
+msgid "LTI Disabled."
+msgstr ""
+
+#: IMSBasicLTI.php:505
+#, php-format
+msgid "You must <a href=\"%1$s\">create a network</a> for it to work."
+msgstr ""
+
+#: IMSBasicLTI.php:642
+msgid "LTI database tables created."
+msgstr ""
+
+#: IMSBasicLTI.php:672 IMSBasicLTI.php:684
+msgid "Edit"
+msgstr ""
+
+#: IMSBasicLTI.php:672
+msgid "Delete"
+msgstr ""
+
+#: IMSBasicLTI.php:681
+msgid "Yes"
+msgstr ""
+
+#: IMSBasicLTI.php:681
+msgid "No"
+msgstr ""
+
+#: IMSBasicLTI.php:686
+msgid "Del"
+msgstr ""
+
+#: blogType/types/arts.php:155
+msgid "Start here"
+msgstr "Empecemos"
+
+#: blogType/types/arts.php:156
+msgid "Hi! this is an Agora, the teacher has to fill all the content"
+msgstr ""
+"Hola esta es una Ágora, el profesor tiene que acabar de configurarla y "
+"eliminar este post"
