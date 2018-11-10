@@ -553,34 +553,16 @@ function lti_network_warning()
             'wordpress-mu-ltiadvantage'), "http://codex.wordpress.org/Create_A_Network") . "</p></div>";
 }
 
-/* function lti_add_pages() {
-  global $current_site, $wpdb, $wp_db_version, $wp_version;
-
-  if ( !isset( $current_site ) && $wp_db_version >= 15260 ) {
-  // WP 3.0 network hasn't been configured
-  add_action('admin_notices', 'lti_network_warning');
-  return false;
-  }
-
-  if ( lti_site_admin() && version_compare( $wp_version, '3.0.9', '<=' ) ) {
-  if ( version_compare( $wp_version, '3.0.1', '<=' ) ) {
-  add_submenu_page('wpmu-admin.php', __( 'LTI Consumer Keys', 'wordpress-mu-ltiadvantage' ), __( 'LTI Consumer Keys', 'wordpress-mu-ltiadvantage'), 'manage_options', 'lti_admin_page', 'lti_admin_page');
-  } else {
-  add_submenu_page('ms-admin.php', __( 'LTI Consumer Keys', 'wordpress-mu-ltiadvantage' ), 'LTI Consumer Keys', 'manage_options', 'lti_admin_page', 'lti_admin_page');
-  }
-  }
-  }
-  add_action( 'admin_menu', 'lti_add_pages' ); */
 
 function lti_network_pages()
 {
-    add_submenu_page('settings.php', 'LTI Consumers Keys', 'LTI Consumers Keys', 'manage_options',
+    add_submenu_page('settings.php', 'LTI Clients', 'LTI Clients', 'manage_options',
         'lti_client_id_admin', 'lti_client_id_admin');
 }
 
 function lti_admin_page()
 {
-    add_menu_page('LTI Consumers Keys', 'LTI Consumers Keys', 'manage_options', 'lti_client_id_admin',
+    add_menu_page('LTI Clients', 'LTI Clients', 'manage_options', 'lti_client_id_admin',
         'lti_client_id_admin');
 }
 
