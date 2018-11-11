@@ -108,8 +108,8 @@ class blogTypeLoader {
      *
      * To check if user is in the course
      */
-    public function requires_user_authorized($roles) {
-        return $this->blogTypeClass->requires_user_authorized($roles);
+    public function requires_user_authorized() {
+        return $this->blogTypeClass->requires_user_authorized();
     }
 
     /**
