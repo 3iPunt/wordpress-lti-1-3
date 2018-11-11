@@ -34,6 +34,7 @@ The parameters are:
 * Create a cron job to consume membership
 * Allow to assess students and return this grade to platform 
 * Store user role on membership
+* Certificate it! 
 
 
 
