@@ -76,8 +76,8 @@ class blogTypeLoader {
 		return $this->blogTypeClass->setLanguage();
 	}
 
-	public function getLanguage($blti) {
-		return $this->blogTypeClass->getLanguage($blti);
+	public function getLanguage() {
+		return $this->blogTypeClass->getLanguage();
 	}
 
 	public function roleMapping($roles) {
