@@ -107,12 +107,8 @@ function lti_parse_request($wp)
                     $auth_url = $row->auth_token_url;
 
 
-                    if (!empty($auth_url)) {
-                        $file_key = dirname(__FILE__) . '/keys/tool/toolRS256.key';
-                        if (file_exists($file_key)) {
-                            $tool_private_key = file_get_contents($file_key);
-                            ltidoMembership($jwt_body['iss'], $client_id, $auth_url, $tool_private_key, $jwt_body);
-                        }
+                    if (!empty($auth_url) && !empty($row->private_key) && !empty($row->public_key)) {
+                        ltidoMembership($jwt_body['iss'], $client_id, $auth_url, $row->private_key, $jwt_body);
                     }
 
                     lti_do_actions($jwt_body, $client_id);
@@ -453,6 +449,35 @@ function lti_client_id_admin()
                                     'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
                 }
                 break;
+            case "view_public_key":
+                $row = lti_get_by_client_id($client_id);
+                if ($row) {
+                    lti_show_keys($row);
+                    $is_editing = true;
+                } else {
+                    ?>
+                    <div id="message" class="error fade"><p><strong><?php _e('LTI Tool not found.',
+                                    'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
+                }
+                break;
+            case "generate_priv_pub_key":
+                $row = lti_get_by_client_id($client_id);
+                if ($row) {
+                    $keys = lti_generate_private_public_key();
+
+                    $wpdb->query($wpdb->prepare("UPDATE {$wpdb->ltitable} SET  private_key = %s, public_key = %s  WHERE client_id = %s",
+                        $keys['privKey'], $keys['pubKey'], $client_id));
+
+                    $row = lti_get_by_client_id($client_id);
+
+                    lti_show_keys($row);
+                    $is_editing = true;
+                } else {
+                    ?>
+                    <div id="message" class="error fade"><p><strong><?php _e('LTI Tool not found.',
+                                    'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
+                }
+                break;
             case "save":
                 $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->ltitable} WHERE client_id = %s",
                     $client_id));
@@ -541,9 +566,28 @@ function lti_edit($row = false)
             'wordpress-mu-ltiadvantage') . "</th><td><input type='checkbox' name='enabled' value='1' ";
     echo $row->enabled == 1 ? 'checked=1 ' : ' ';
     echo "/></td></tr>\n";
+    echo "<tr><th>" . __('Public key',
+            'wordpress-mu-ltiadvantage') . "</th><td><textarea readonly cols='60' rows  ='5'>" . $row->public_key . "</textarea>";
+    echo "</td></tr>\n";
     echo "</table>";
     echo "<p><input type='submit' class='button-primary' value='" . __('Save',
-            'wordpress-mu-ltiadvantage') . "' /></p></form><br /><br />";
+            'wordpress-mu-ltiadvantage') . "' /></p></form>";
+    echo "<form method='POST'><input type='hidden' name='action' value='generate_priv_pub_key' /><p><input type='submit' class='button-primary' value='" . __('Generate new private and public key',
+            'wordpress-mu-ltiadvantage') . "' /></p>" . wp_nonce_field('lti') . "<input type='hidden' name='client_id' value='{$row->client_id}' /></form><br /><br />";
+}
+
+function lti_show_keys($row = false)
+{
+    echo "<table class='form-table'>\n";
+    echo "<tr><th>" . __('Client id',
+            'wordpress-mu-ltiadvantage') . "</th><td><input type='text' name='client_id' value='{$row->client_id}' readonly=\"readonly\"/></td></tr>\n";
+    echo "<tr><th>" . __('Public key',
+            'wordpress-mu-ltiadvantage') . "</th><td><textarea readonly cols='60' rows  ='5'>" . $row->public_key . "</textarea>";
+    echo "</td></tr>\n";
+    echo "</table>\n";
+    echo "<form method='post'><input type='submit' class='button button-cancel' value='" . __('Back',
+            'wordpress-mu-ltiadvantage') . "' /></form>";
+
 }
 
 function lti_network_warning()
@@ -592,8 +636,6 @@ function lti_maybe_create_db()
 
     get_lti_hash(); // initialise the remote login hash
 
-    lti_check_environment();
-
     $wpdb->ltitable = $wpdb->base_prefix . 'lti_clients';
     if (lti_site_admin()) {
         $created = 0;
@@ -604,6 +646,8 @@ function lti_maybe_create_db()
                   key_set_url varchar(255) NOT NULL,
                   auth_token_url varchar(255) NOT NULL,
                   enabled tinyint(1) NOT NULL,
+                  private_key mediumtext NULL,
+                  public_key mediumtext NULL,
                   last_access date DEFAULT NULL,
                   custom_username_parameter varchar(255) DEFAULT NULL,
                   has_custom_username_parameter decimal(1,0) default 0,
@@ -654,6 +698,7 @@ function lti_listing($rows, $heading = '')
                 'wordpress-mu-ltiadvantage') . '</th><th>' . __('Key set url',
                 'wordpress-mu-ltiadvantage') . '</th><th>' . __('Auth token url',
                 'wordpress-mu-ltiadvantage') . '</th><th>' . __('Enabled',
+                'wordpress-mu-ltiadvantage') . '</th><th>' . __('View public key',
                 'wordpress-mu-ltiadvantage') . '</th><th>' . __('Edit',
                 'wordpress-mu-ltiadvantage') . '</th><th>' . __('Delete',
                 'wordpress-mu-ltiadvantage') . '</th></tr></thead><tbody>';
@@ -666,7 +711,12 @@ function lti_listing($rows, $heading = '')
             echo "</td><td><form method='POST'><input type='hidden' name='action' value='edit' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
             wp_nonce_field('lti');
             echo "<input type='submit' class='button-secondary' value='" . __('Edit',
-                    'wordpress-mu-ltiadvantage') . "' /></form></td><td><form method='POST'><input type='hidden' name='action' value='del' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
+                    'wordpress-mu-ltiadvantage') . "' /></form></td>";
+            echo "</td><td><form method='POST'><input type='hidden' name='action' value='view_public_key' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
+            wp_nonce_field('lti');
+            echo "<input type='submit' class='button-secondary' value='" . __('Show',
+                    'wordpress-mu-ltiadvantage') . "' /></form></td><td>";
+            echo "<td><form method='POST'><input type='hidden' name='action' value='del' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
             wp_nonce_field('lti');
             echo "<input type='submit' class='button-secondary' value='" . __('Del',
                     'wordpress-mu-ltiadvantage') . "' /></form>";
@@ -735,10 +785,10 @@ function ltidoMembership($iss, $client_id, $auth_url, $tool_private_key, $jwt_bo
                 $custom_params = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'];
                 foreach ($members['members'] as $member) {
                     $lti_user_id = $member['user_id'];
-                    $firstname = isset($member['given_name']) ?: '';
-                    $lastname = isset($member['family_name']) ?: '';
-                    $email = isset($member['user_email']) ?: '';
-                    $name = isset($member['display_name']) ?: '';
+                    $firstname = isset($member['given_name']) ? $member['given_name'] : '';
+                    $lastname = isset($member['family_name']) ? $member['family_name'] : '';
+                    $email = isset($member['email']) ? $member['email'] : '';
+                    $name = isset($member['display_name']) ? $member['display_name'] : '';
                     if (!empty($email)) {
                         // TODO check if it exist
                         $userkey = getUserkeyLTI($client_id, $issuer_id, $deployment_id, $lti_user_id, $custom_params);
@@ -764,6 +814,8 @@ function ltidoMembership($iss, $client_id, $auth_url, $tool_private_key, $jwt_bo
                                     exit;
                                 }
                             }
+
+                            //TODO get user role
                         }
 
                     }
@@ -794,41 +846,26 @@ function lti_check_nonce($client_id, $nonce)
 }
 
 /**
- * Checks for the presence of various files and directories that the plugin needs to operate
- *
- * @return void
+ * Generates a private and public key
+ * @return array
  */
-function lti_check_environment()
+function lti_generate_private_public_key()
 {
-    if(! file_exists( constant('LTIADVANTAGE_CONF') ) )
-    {
-        mkdir( constant('LTIADVANTAGE_CONF'), 0775, true );
-    }
+    $config = array(
+        "digest_alg" => "sha512",
+        "private_key_bits" => 4096,
+        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+    );
 
-    if(! file_exists( constant('LTIADVANTAGE_CONF') . '/certs') )
-    {
-        mkdir( constant('LTIADVANTAGE_CONF') . '/certs', 0775, true );
-    }
+// Create the private and public key
+    $res = openssl_pkey_new($config);
 
-    if(! file_exists( constant('LTIADVANTAGE_CONF') . '/certs/.htaccess' ) || md5_file( constant('LTIADVANTAGE_CONF') . '/certs/.htaccess' ) != '9f6dc1ce87ca80bc859b47780447f1a6')
-    {
-        file_put_contents( constant('LTIADVANTAGE_CONF') . '/certs/.htaccess' , "<Files ~ \"\\.(key)$\">\nDeny from all\n</Files>" );
-    }
+// Extract the private key from $res to $privKey
+    openssl_pkey_export($res, $privKey);
+
+// Extract the public key from $res to $pubKey
+    $pubKey = openssl_pkey_get_details($res);
+    $pubKey = $pubKey["key"];
+
+    return ['privKey' => $privKey, 'pubKey' => $pubKey];
 }
-
-function lti_define_constants() {
-
-    if (!defined('LTIADVANTAGE_CONF')) {
-        // Store all config stuff with the main blog, which is defined by BLOG_ID_CURRENT_SITE
-        if (is_multisite()) {
-            switch_to_blog(constant('BLOG_ID_CURRENT_SITE'));
-        }
-
-        $upload_dir = wp_upload_dir();
-        define('LTIADVANTAGE_CONF', $upload_dir['basedir'] . '/ims-lti-advantage/');
-
-        restore_current_blog();
-    }
-}
-
-add_action('init', 'lti_define_constants');
