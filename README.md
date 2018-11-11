@@ -21,13 +21,19 @@ As superadmin you can go to Options -> LTI Clients then you can manage the clien
 
 The parameters are:
 
-* Client id: 
-* Key set url:
-* Auth token url:
-* Custom username parameter
-* Has custom username
-* Enable
-* Tool public key
+* Client id: the id of the client who requested the token (Audience)
+* Key set url: The url where the public key is set (well-known/jwks URL)
+* Auth token url: The url to consume the Membershipt and Outcomes service
+* Custom username parameter: a custom parameter to create a custom username instead use the issuer + "_"+ client_id + "_" + "deployment_id" + "user_id"
+* Has custom username: boolean to enable custom username
+* Enable: Check if tool is enabled or not
+* You can generate the public and private key, the public key can be set on platform to get membership users 
+
+## Next steps
+
+* Create a cron job to consume membership
+* Allow to assess students and return this grade to platform 
+* Store user role on membership
 
 
 
