@@ -414,6 +414,7 @@ function lti_get_by_client_id($client_id)
 {
     global $wpdb;
     lti_maybe_create_db();
+    $wpdb->ltitable = $wpdb->base_prefix . 'lti_clients';
     $custom_username_parameter = null;
     $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->ltitable} WHERE client_id = %s",
         $client_id));
@@ -432,6 +433,7 @@ function lti_client_id_admin()
         default:
     }
     lti_maybe_create_db();
+    $wpdb->ltitable = $wpdb->base_prefix . 'lti_clients';
     $is_editing = false;
     echo '<h2>' . __('LTI: Clients', 'wordpress-mu-ltiadvantage') . '</h2>';
     if (!empty($_POST['action'])) {
