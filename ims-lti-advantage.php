@@ -104,14 +104,7 @@ function lti_parse_request($wp)
                         die;
                     }*/
 
-                    $auth_url = $row->auth_token_url;
-
-
-                    if (!empty($auth_url) && !empty($row->private_key) && !empty($row->public_key)) {
-                        ltidoMembership($jwt_body['iss'], $client_id, $auth_url, $row->private_key, $jwt_body);
-                    }
-
-                    lti_do_actions($jwt_body, $client_id);
+                    lti_do_actions($jwt_body, $client_id, $row);
                 } else {
                     wp_die("Missing client id, review launch configuration", "wordpress-mu-ltiadvantage");
                 }
@@ -121,7 +114,7 @@ function lti_parse_request($wp)
     return false;
 }
 
-function lti_do_actions($jwt_body, $client_id)
+function lti_do_actions($jwt_body, $client_id, $row)
 {
     // Insert code here to handle incoming connections - use the user
     // and resource_link properties of the $tool_provider parameter
@@ -255,13 +248,39 @@ function lti_do_actions($jwt_body, $client_id)
                 switch_to_blog($blog_id);
 
                 update_site_option('WPLANG', $old_site_language);
-                update_option('lti_client', $client_id);
+                update_option('lti_clientid', $client_id);
+                update_option('lti_issuer', $jwt_body['iss']);
+
+                $auth_url = $row->auth_token_url;
+                if (!empty($auth_url) && !empty($row->private_key) && !empty($row->public_key)) {
+                    $deployment_id = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/deployment_id'];
+                    $custom_params = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'];
+                    $namesroleservice = isset($jwt_body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice']) ?
+                        $jwt_body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'] : false;
+                    update_option('lti_deployment_id', $deployment_id);
+                    update_option('lti_custom_params', $custom_params);
+                    update_option('lti_namesroleservice', $namesroleservice);
+
+                }
+
 
                 $blog_created = true;
             }
         } else {
             $blog_id = get_current_blog_id();
-            update_option('lti_client', $client_id);
+            update_option('lti_clientid', $client_id);
+            update_option('lti_issuer', $jwt_body['iss']);
+            $auth_url = $row->auth_token_url;
+            if (!empty($auth_url) && !empty($row->private_key) && !empty($row->public_key)) {
+                $deployment_id = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/deployment_id'];
+                $custom_params = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'];
+                $namesroleservice = isset($jwt_body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice']) ?
+                    $jwt_body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'] : false;
+                update_option('lti_deployment_id', $deployment_id);
+                update_option('lti_custom_params', $custom_params);
+                update_option('lti_namesroleservice', $namesroleservice);
+
+            }
         }
         // Connect the user to the blog
         if (isset($blog_id)) {
@@ -760,16 +779,24 @@ function add_lti_plugin_activate()
 }
 
 
-function ltidoMembership($iss, $client_id, $auth_url, $tool_private_key, $jwt_body)
-{
-    if (isset($jwt_body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice'])) {
+function ltidoMembership(
+    $iss,
+    $client_id,
+    $auth_url,
+    $tool_private_key,
+    $namesroleservice,
+    $deployment_id,
+    $custom_params
+) {
+    $success = false;
+    if (isset($namesroleservice)) {
 
         $username_param = lti_get_username_parameter_from_client_id($client_id);
         if (empty($username_param)) {
             //If custom username the custom paramters are not returned by membership service
 
-            $memberships_url = $jwt_body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice']['context_memberships_url'];
-            $service_version = $jwt_body['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice']['service_version'];
+            $memberships_url = $namesroleservice['context_memberships_url'];
+            $service_version = $namesroleservice['service_version'];
 
             // Getting access token with the scopes for the service calls we want to make
             // so they are all authenticated (see serviceauth.php)
@@ -793,18 +820,18 @@ function ltidoMembership($iss, $client_id, $auth_url, $tool_private_key, $jwt_bo
 
             curl_close($ch);
             if (isset($members['members'])) {
-                $issuer_id = $jwt_body['iss'];
-                $deployment_id = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/deployment_id'];
-                $custom_params = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'];
+                $blogType = new blogTypeLoader($custom_params['blogtype'] ?: 'defaultType');
+                $overwrite_roles = $custom_params[OVERWRITE_ROLES] ?: false;
+                $success = true;
                 foreach ($members['members'] as $member) {
                     $lti_user_id = $member['user_id'];
                     $firstname = isset($member['given_name']) ? $member['given_name'] : '';
                     $lastname = isset($member['family_name']) ? $member['family_name'] : '';
                     $email = isset($member['email']) ? $member['email'] : '';
                     $name = isset($member['display_name']) ? $member['display_name'] : '';
+                    $user_creted = false;
                     if (!empty($email)) {
-                        // TODO check if it exist
-                        $userkey = getUserkeyLTI($client_id, $issuer_id, $deployment_id, $lti_user_id, $custom_params);
+                        $userkey = getUserkeyLTI($client_id, $iss, $deployment_id, $lti_user_id, $custom_params);
                         $uinfo = get_user_by('login', $userkey);
                         if (!isset($uinfo) || $uinfo == false) {
                             $ret_id = wp_insert_user(array(
@@ -827,16 +854,31 @@ function ltidoMembership($iss, $client_id, $auth_url, $tool_private_key, $jwt_bo
                                     exit;
                                 }
                             }
+                            $uinfo = get_user_by('login', $userkey);
+                            $user_creted = true;
 
-                            //TODO get user role
                         }
 
+                        if ($uinfo && (!is_user_member_of_blog($uinfo->ID,
+                                    get_current_blog_id()) || $overwrite_roles || $user_creted)) {
+                            if (is_user_member_of_blog($uinfo->ID)) {
+                                remove_user_from_blog($uinfo->ID, get_current_blog_id());
+                            }
+                            $role = $blogType->roleMapping($member['roles']);
+                            if (is_multisite()) {
+                                add_user_to_blog(get_current_blog_id(), $uinfo->ID, $role);
+                            } else {
+                                wp_update_user(array('ID' => $uinfo->ID, 'role' => $role));
+                            }
+                        }
                     }
                 }
+
             }
         }
 
     }
+    return $success;
 }
 
 
@@ -882,3 +924,5 @@ function lti_generate_private_public_key()
 
     return ['privKey' => $privKey, 'pubKey' => $pubKey];
 }
+
+require_once dirname(__FILE__) . '/blogType/grades-management.php';

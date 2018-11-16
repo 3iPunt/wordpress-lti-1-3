@@ -126,12 +126,21 @@ class defaultType implements blogType {
 	 */
 	public function roleMapping($roles) {
 
-		if (in_array("http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator", $roles)) return "administrator";
-	    elseif (in_array("http://purl.imsglobal.org/vocab/lis/v2/institution/person#Instructor", $roles)) return "editor";
-	    elseif (in_array("http://purl.imsglobal.org/vocab/lis/v2/membership#Learner", $roles)) return "subscriber";
+		if ($this->check_role_contains("Administrator", $roles)) return "administrator";
+	    elseif ($this->check_role_contains("Instructor", $roles)) return "editor";
+	    elseif ($this->check_role_contains("Learner", $roles)) return "subscriber";
 	    else return "subscriber";
 
 	}
+
+    private function check_role_contains($stringtocheck, $roles)
+    {
+        foreach ($roles as $name) {
+            if (stripos($name, $stringtocheck) !== FALSE) {
+                return true;
+            }
+        }
+    }
 
 	/**
 	 *
