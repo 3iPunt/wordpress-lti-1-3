@@ -253,12 +253,15 @@ function lti_do_actions($jwt_body, $client_id)
 
                 $blogType->checkErrorCreatingBlog($blog_id, $path);
                 switch_to_blog($blog_id);
+
                 update_site_option('WPLANG', $old_site_language);
+                update_option('lti_client', $client_id);
 
                 $blog_created = true;
             }
         } else {
             $blog_id = get_current_blog_id();
+            update_option('lti_client', $client_id);
         }
         // Connect the user to the blog
         if (isset($blog_id)) {
@@ -400,7 +403,6 @@ function getUserkeyLTI($client_id, $issuer_id, $deployment_id, $lti_user_id, $cu
  */
 function lti_get_username_parameter_from_client_id($client_id)
 {
-    global $wpdb;
     lti_maybe_create_db();
     $custom_username_parameter = null;
     $row = lti_get_by_client_id($client_id);
@@ -484,18 +486,19 @@ function lti_client_id_admin()
                 $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->ltitable} WHERE client_id = %s",
                     $client_id));
                 if ($row) {
-                    $wpdb->query($wpdb->prepare("UPDATE {$wpdb->ltitable} SET  key_set_url = %s, auth_token_url = %s, enabled = %d, custom_username_parameter = %s, has_custom_username_parameter = %d  WHERE client_id = %s",
+                    $wpdb->query($wpdb->prepare("UPDATE {$wpdb->ltitable} SET  key_set_url = %s, auth_token_url = %s, enabled = %d, custom_username_parameter = %s, has_custom_username_parameter = %d, grades_enabled= %d  WHERE client_id = %s",
                         $_POST['key_set_url'], $_POST['auth_token_url'], $_POST['enabled'],
                         $_POST['custom_username_parameter'],
-                        $_POST['has_custom_username_parameter'], $client_id));
+                        $_POST['has_custom_username_parameter'], $_POST['grades_enabled'], $client_id));
                     ?>
                     <div id="message" class="updated fade"><p><strong><?php _e('LTI Tool updated.',
                                     'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
                 } else {
-                    $wpdb->query($wpdb->prepare("INSERT INTO {$wpdb->ltitable} ( `client_id`, `key_set_url`, `auth_token_url`, `enabled`, `custom_username_parameter`, `has_custom_username_parameter`) VALUES ( %s, %s, %s, %d, %s, %d)",
+                    $wpdb->query($wpdb->prepare("INSERT INTO {$wpdb->ltitable} ( `client_id`, `key_set_url`, `auth_token_url`, `enabled`, `custom_username_parameter`, `has_custom_username_parameter`, `grades_enabled`) VALUES ( %s, %s, %s, %d, %s, %d, %d)",
                         $client_id, $_POST['key_set_url'], $_POST['auth_token_url'], $_POST['enabled'],
                         $_POST['custom_username_parameter'],
-                        $_POST['has_custom_username_parameter']));
+                        $_POST['has_custom_username_parameter'],
+                        $_POST['grades_enabled']));
                     ?>
                     <div id="message" class="updated fade"><p><strong><?php _e('LTI Tool added.',
                                     'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
@@ -542,6 +545,7 @@ function lti_edit($row = false)
         $row->key_set_url = '';
         $row->auth_token_url = '';
         $row->enabled = 1;
+        $row->grades_enabled = 0;
         $row->has_custom_username_parameter = 0;
         $row->custom_username_parameter = '';
         $is_new = true;
@@ -568,6 +572,13 @@ function lti_edit($row = false)
             'wordpress-mu-ltiadvantage') . "</th><td><input type='checkbox' name='enabled' value='1' ";
     echo $row->enabled == 1 ? 'checked=1 ' : ' ';
     echo "/></td></tr>\n";
+
+    echo "<tr><th>" . __('Grades Enabled',
+            'wordpress-mu-ltiadvantage') . "</th><td><input type='checkbox' name='grades_enabled' value='1' ";
+
+    echo $row->grades_enabled == 1 ? 'checked=1 ' : ' ';
+    echo "/></td></tr>\n";
+
     echo "<tr><th>" . __('Public key',
             'wordpress-mu-ltiadvantage') . "</th><td><textarea readonly cols='60' rows  ='5'>" . $row->public_key . "</textarea>";
     echo "</td></tr>\n";
@@ -650,9 +661,9 @@ function lti_maybe_create_db()
                   enabled tinyint(1) NOT NULL,
                   private_key mediumtext NULL,
                   public_key mediumtext NULL,
-                  last_access date DEFAULT NULL,
                   custom_username_parameter varchar(255) DEFAULT NULL,
                   has_custom_username_parameter decimal(1,0) default 0,
+                  grades_enabled decimal(1,0) default 0,
                   created datetime NOT NULL,
                   updated datetime NOT NULL,
                   PRIMARY KEY (client_id)
@@ -710,14 +721,14 @@ function lti_listing($rows, $heading = '')
             echo "<td>{$row->auth_token_url}</td>";
             echo "<td>" . ($row->enabled == 1 ? __('Yes', 'wordpress-mu-ltiadvantage') : __('No',
                     'wordpress-mu-ltiadvantage'));
+            echo "</td><td><form method='POST'><input type='hidden' name='action' value='view_public_key' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
+            wp_nonce_field('lti');
+            echo "<input type='submit' class='button-secondary' value='" . __('Show',
+                    'wordpress-mu-ltiadvantage') . "' /></form>";
             echo "</td><td><form method='POST'><input type='hidden' name='action' value='edit' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
             wp_nonce_field('lti');
             echo "<input type='submit' class='button-secondary' value='" . __('Edit',
                     'wordpress-mu-ltiadvantage') . "' /></form></td>";
-            echo "</td><td><form method='POST'><input type='hidden' name='action' value='view_public_key' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
-            wp_nonce_field('lti');
-            echo "<input type='submit' class='button-secondary' value='" . __('Show',
-                    'wordpress-mu-ltiadvantage') . "' /></form></td><td>";
             echo "<td><form method='POST'><input type='hidden' name='action' value='del' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
             wp_nonce_field('lti');
             echo "<input type='submit' class='button-secondary' value='" . __('Del',
