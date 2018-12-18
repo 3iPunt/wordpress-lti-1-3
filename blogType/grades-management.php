@@ -133,6 +133,7 @@ class LTIGradesManagement
             return false;
         }
 
+        ob_start();
         ?>
         <div id="grades-management-membership">
             <img class="waiting" src="<?php echo  esc_url(admin_url('images/wpspin_light-2x.gif')) ?>"  /><?php  _e('Loading Memberships',

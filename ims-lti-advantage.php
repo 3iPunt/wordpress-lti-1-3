@@ -820,8 +820,8 @@ function ltidoMembership(
 
             curl_close($ch);
             if (isset($members['members'])) {
-                $blogType = new blogTypeLoader($custom_params['blogtype'] ?: 'defaultType');
-                $overwrite_roles = $custom_params[OVERWRITE_ROLES] ?: false;
+                $blogType = new blogTypeLoader(isset($custom_params['blogtype']) ? $custom_params['blogtype'] : 'defaultType');
+                $overwrite_roles = isset($custom_params[OVERWRITE_ROLES]) ? $custom_params[OVERWRITE_ROLES] : false;
                 $success = true;
                 foreach ($members['members'] as $member) {
                     $lti_user_id = $member['user_id'];
