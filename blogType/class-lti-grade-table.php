@@ -64,17 +64,17 @@ class LTI_Grade_Table extends WP_List_Table {
         $data = array();
         foreach ($students as $student) {
             $item = array('ID' => $student->ID, 'student' => $student->display_name);
-            $args = array(
-                'user_id' => $student->ID,
-                'count' => true, //Whether to return a comment count (true) or array of comment objects (false).
-                'status' => 'approve'
-            );
 
             foreach ($this->post_types as $post_type) {
-                $posts = get_posts(array('post_type' => $post_type, 'author' => $student->ID));
+                $posts = get_posts(array('post_type' => $post_type, 'author' => $student->ID, 'numberposts' => -1));
                 $item[$post_type] = count($posts);
             }
 
+            $args = array(
+                'user_id' => $student->ID,
+                'count' => true, //Whether to return a comment count (true) or array of comment objects (false).
+                'status' => 'all'
+            );
             $num_comments = get_comments($args);
             $item['comments'] = $num_comments;
 
@@ -116,7 +116,7 @@ class LTI_Grade_Table extends WP_List_Table {
      */
     public function get_sortable_columns()
     {
-        return array('title' => array('title', false));
+        return array('student' => array('student', false));
     }
 
 
@@ -131,16 +131,21 @@ class LTI_Grade_Table extends WP_List_Table {
     public function column_default( $item, $column_name )
     {
         if (in_array($column_name, $this->post_types)) {
-            return $item[ $column_name ];
+            return '<a href='.$this->get_page($column_name, $item[ 'ID' ]).' target="_blank">'.$item[ $column_name ].'</a>';
         }
         switch( $column_name ) {
             case 'student':
                 return '<a href='.get_author_posts_url($item[ 'ID' ]).' target="_blank">'.$item[ $column_name ].'</a>';
             case 'comments':
-                return '<a href='.$item[ 'ID' ].'>'.$item[ $column_name ].'</a>';
+                return '<a href='.$this->get_page('comments', $item[ 'ID' ]).' target="_blank">'.$item[ $column_name ].'</a>';
             default:
                 return print_r( $item, true ) ;
         }
+    }
+
+    private function get_page($type, $user_id) {
+        $url = admin_url('admin.php?page=lti_grades_management&type='.$type.'&user_id='.$user_id);
+        return $url;
     }
 
     /**
