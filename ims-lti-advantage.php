@@ -38,7 +38,7 @@ require_once dirname(__FILE__) . '/blogType/utils/UtilsPropertiesWP.php';
 function lti_parse_request($wp)
 {
     // Make sure JWT has been passed in the request
-    $raw_jwt = $_REQUEST['jwt'] ?: $_REQUEST['id_token'];
+    $raw_jwt = isset($_REQUEST['jwt']) ? $_REQUEST['jwt'] : isset($_REQUEST['id_token']) ? $_REQUEST['id_token'] : '';
     if (!empty($raw_jwt)) {
 
         // Decode JWT Head and Body
@@ -128,7 +128,7 @@ function lti_do_actions($jwt_body, $client_id, $row)
         $deployment_id = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/deployment_id'];
         $lti_user_id = $jwt_body['sub'];
         $custom_params = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'];
-        $blogType = new blogTypeLoader($custom_params['blogtype'] ?: 'defaultType');
+        $blogType = new blogTypeLoader(isset($custom_params['blogtype']) ? $custom_params['blogtype'] : 'defaultType');
 
         if ($blogType->error < 0) {
 
@@ -228,8 +228,8 @@ function lti_do_actions($jwt_body, $client_id, $row)
 
 
         $blog_created = false;
-        $overwrite_plugins_theme = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'][OVERWRITE_PLUGINS_THEME] ?: false;
-        $overwrite_roles = $jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'][OVERWRITE_ROLES] ?: false;
+        $overwrite_plugins_theme = isset($jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'][OVERWRITE_PLUGINS_THEME]) ? $jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'][OVERWRITE_PLUGINS_THEME] : false;
+        $overwrite_roles = isset($jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'][OVERWRITE_ROLES]) ? $jwt_body['https://purl.imsglobal.org/spec/lti/claim/custom'][OVERWRITE_ROLES] : false;
 
         $blog_is_new = false;
         if (is_multisite()) {
