@@ -7,6 +7,7 @@ License: GPLv2 Copyright (c) 2018
 */
 
 define('PORTAFOLIS_UOC_DEBAT_DIR', dirname(__FILE__)); //an absolute path to this directory
+require_once(dirname(__FILE__).'/class-lti-grade-table.php');
 class LTIGradesManagement
 {
     private static $instance = null;
@@ -68,63 +69,20 @@ class LTIGradesManagement
 
     public function lti_grades_management()
     {
+
         if (!current_user_can(self::$CAPABILITY_EDITOR_ROLE)) {
             return false;
         }
 
-        $current_classroom_id = uoc_create_site_is_classroom_blog();
-        if ($current_classroom_id != null) {
-            global $openIDUOC;
-            if ($openIDUOC) {
-                $uocApi = $openIDUOC->getUocAPI();
-
-                if (!empty($_POST['action'])) {
-                    check_admin_referer('lti_grades_management_edit');
-                    switch ($_POST['action']) {
-                        case "save":
-                            $board = $_POST['board'];
-                            $folder = $_POST['folder'];
-                            $c = uoc_create_site_get_subject_from_db($current_classroom_id);
-                            if ($board != $c->forumId) {
-                                $folder = '';
-                            }
-                            uoc_create_site_update_subject_forum($current_classroom_id, $board, $folder);
-                            break;
-                    }
-                } elseif (!empty($_POST['action_create'])) {
-                    check_admin_referer('lti_grades_management_edit_create');
-                    $c = uoc_create_site_get_subject_from_db($current_classroom_id);
-                    $parentFolderId = $_POST['parentFolderId'];
-                    $folder_name = empty($_POST['folder_name']) ? false : $_POST['folder_name'];
-                    if (!$folder_name) {
-                        wp_die(__("You have to indicate the folder name", self::$DOMAIN));
-                    }
-                    $uocApi->create_folder(get_current_user_id(), $current_classroom_id, $c->forumId, $parentFolderId,
-                        $folder_name);
-                }
-
-
-                $uocApi = $openIDUOC->getUocAPI();
-                $boards = $uocApi->getClassroomForums($current_classroom_id, get_current_user_id());
-
-                $user = $uocApi->get_user(get_current_user_id());
-                if (!$boards || $user == null || $user->getId() == null) {
-
-                    global $openIDUOC;
-                    if (class_exists('OpenID_Connect_Generic') && $openIDUOC) {
-                        wp_die(sprintf(__("You have to <a href=\"%s\" target='_blank'>reauthenticate</a>, then reload the current page",
-                            self::$DOMAIN), $openIDUOC->getClientWrapper()->get_authentication_url()));
-                    }
-                    wp_die("Can't get the api information, try again later", self::$DOMAIN);
-                }
-
-                $c = uoc_create_site_get_subject_from_db($current_classroom_id);
-                $this->lti_grades_management_edit($boards->getBoards(), $uocApi, $current_classroom_id, $c->forumId,
-                    $c->folderId);
-            }
-        } else {
-            wp_die('This is not a classroom portfolio', self::$DOMAIN);
-        }
+        $gradesListTable = new LTI_Grade_Table();
+        $gradesListTable->prepare_items();
+        ?>
+        <div class="wrap">
+            <div id="icon-users" class="icon32"></div>
+            <h2><?php _e('Student List', self::$DOMAIN)?></h2>
+            <?php $gradesListTable->display(); ?>
+        </div>
+        <?php
     }
 
     public function  lti_grades_management_syncmembers() {
@@ -149,73 +107,6 @@ class LTIGradesManagement
             $this->lti_deployment_id,
             $this->lti_custom_params);
         echo "Done! ".$success;
-    }
-
-    private function lti_grades_management_edit(
-        $boardList,
-        $uocApi,
-        $classroom_id,
-        $board_id = null,
-        $folder_id = null
-    ) {
-        $folders = array();
-        if ($board_id != null) {
-            echo "<h2>" . __('Edit Debate configuration', self::$DOMAIN) . "</h2>";
-        } else {
-            echo "<h2>" . __('New Debate configuration', self::$DOMAIN) . "</h2>";
-        }
-
-        $options = '<option>' . __('Select one', self::$DOMAIN) . '</option>';
-        $allowed_board_sub_types = array('WKGRP_FO', 'WKGRP_DE');
-        foreach ($boardList as $board) {
-            if (in_array($board->getSubtype(), $allowed_board_sub_types)) {
-                $selected = $board->getId() == $board_id ? 'selected' : '';
-                $options .= '<option value="' . $board->getId() . '" ' . $selected . '>' . $board->getTitle() . '</option>';
-            }
-        }
-
-        echo "<form method='POST'><input type='hidden' name='action' value='save' />";
-        wp_nonce_field('lti_grades_management_edit');
-        echo "<table class='form-table'>\n";
-        echo "<tr><th>" . __('Select Board', self::$DOMAIN) .
-            " * " .
-            "</th><td><select id=\"portafolis-uoc-debats-board\" name=\"board\">" . $options . "</select></td></tr>\n";
-        if ($board_id != null) {
-            $options_folder = '<option>' . __('Select one', self::$DOMAIN) . '</option>';
-            $folders = $uocApi->get_folders(get_current_user_id(), $classroom_id, $board_id);
-            foreach ($folders->getFolders() as $folder) {
-                $selected = $folder->getId() == $folder_id ? 'selected' : '';
-                $options_folder .= '<option value="' . $folder->getId() . '" ' . $selected . '>' . $folder->getName() . '</option>';
-            }
-
-            echo "<tr><th>" . __('Select Folder', self::$DOMAIN) .
-                " * " .
-                "</th><td><select id=\"portafolis-uoc-debats-folder\" name=\"folder\">" . $options_folder . "</select></td></tr>\n";
-
-        }
-        echo "</table>";
-        echo "<small>*" . __('You have to select board and folder to finish configuration', self::$DOMAIN) . "</small>";
-        echo "<p><input type='submit' class='button-primary' value='" . __('Save',
-                self::$DOMAIN) . "' /></p></form><br />";
-
-
-        if ($board_id != null) {
-            echo "<form method='POST'><input type='hidden' name='action_create' value='save' />";
-            wp_nonce_field('lti_grades_management_edit_create');
-            echo "<table class='form-table'>\n";
-            $options_folder = '';
-            foreach ($folders->getFolders() as $folder) {
-                $selected = '';
-                $options_folder .= '<option value="' . $folder->getId() . '" ' . $selected . '>' . $folder->getName() . '</option>';
-            }
-            echo "<tr><th>" . __('Folder name', self::$DOMAIN) .
-                "</th><td><input type=\"text\" name=\"folder_name\"  size=\"20\"/></td></tr>\n";
-            echo "<tr><th>" . __('Select Parent Folder', self::$DOMAIN) .
-                "</th><td><select name=\"parentFolderId\">" . $options_folder . "</select></td></tr>\n";
-            echo "</table>";
-            echo "<p><input type='submit' class='button-primary' value='" . __('Create Folder',
-                    self::$DOMAIN) . "' /></p></form><br />";
-        }
     }
 
     /**
@@ -244,4 +135,7 @@ function lti_gradesmanagement_instantiate()
 {
     global $lti_gradesmanagement;
     $lti_gradesmanagement = LTIGradesManagement::get_instance();
-} //end portafolis_uocdebats_instantiate
+}
+
+
+
