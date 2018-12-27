@@ -189,6 +189,7 @@ function lti_do_actions($jwt_body, $client_id, $row)
                 'first_name' => $jwt_body['given_name'],
                 'last_name' => $jwt_body['family_name'],
                 'user_email' => $jwt_body['email'],
+                'user_pass' => wp_generate_password( 10, true, true ),
                 'display_name' => $jwt_body['name'],
                 'user_url' => 'http://'
             ));
