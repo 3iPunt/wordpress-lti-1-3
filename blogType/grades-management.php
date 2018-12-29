@@ -629,7 +629,7 @@ class LTIGradesManagement
             $line_item = curl_exec($ch);
             curl_close ($ch);
 
-            $found_line_item = $line_item;
+            $found_line_item = json_decode($line_item, true);
         }
 
         return $found_line_item;
