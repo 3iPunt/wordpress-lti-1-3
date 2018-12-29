@@ -35,7 +35,7 @@ function get_access_token($iss, $client_id, $auth_url, $tool_private_key, $scope
 
     // Make request to get auth token
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL,$auth_url);
+    curl_setopt($ch, CURLOPT_URL, $auth_url);
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($auth_request));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -43,6 +43,7 @@ function get_access_token($iss, $client_id, $auth_url, $tool_private_key, $scope
     $token_data = json_decode($ret, true);
     curl_close ($ch);
     if (!isset($token_data['access_token'])) {
+        echo "<p>url $auth_url</p>";
         print_r($ret);
     }
 
