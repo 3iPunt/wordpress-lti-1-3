@@ -25,5 +25,3 @@ function get_lti_curl($url) {
 
     return $content;
 }
-
-?>

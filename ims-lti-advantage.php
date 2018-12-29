@@ -141,7 +141,6 @@ function lti_do_actions($jwt_body, $client_id, $row)
         }
 
 
-        //TODO Get the list of users
         $resource_link = $jwt_body["https://purl.imsglobal.org/spec/lti/claim/resource_link"]['id'];
 
         // Set up the user...
@@ -157,6 +156,7 @@ function lti_do_actions($jwt_body, $client_id, $row)
         }
 
         $uinfo = get_user_by('login', $userkey);
+
         $created_user = false;
         if (isset($uinfo) && $uinfo != false) {
             $update_data = array(
@@ -207,6 +207,8 @@ function lti_do_actions($jwt_body, $client_id, $row)
             $created_user = true;
         }
 
+
+        update_user_meta($uinfo->ID, LTIGradesManagement::$LTI_METAKEY_USER_ID, $lti_user_id);
 
         $user = new WP_User($uinfo->ID);
         $_SERVER['REMOTE_USER'] = $userkey;
@@ -285,9 +287,16 @@ function lti_do_actions($jwt_body, $client_id, $row)
         }
         // Connect the user to the blog
         if (isset($blog_id)) {
+
+
+
             if (is_multisite()) {
                 switch_to_blog($blog_id);
             }
+
+            $urlclaim = isset($jwt_body["https://purl.imsglobal.org/spec/lti-ags/claim/endpoint"])?$jwt_body["https://purl.imsglobal.org/spec/lti-ags/claim/endpoint"]:false;
+            LTIGradesManagement::lti_save_url_claim($uinfo->ID, $urlclaim);
+            LTIGradesManagement::lti_save_resource_link($uinfo->ID, $resource_link);
 
             if ($overwrite_plugins_theme || $blog_created) {
                 $blogType->loadPlugins();
@@ -780,107 +789,6 @@ function add_lti_plugin_activate()
 }
 
 
-function ltidoMembership(
-    $iss,
-    $client_id,
-    $auth_url,
-    $tool_private_key,
-    $namesroleservice,
-    $deployment_id,
-    $custom_params
-) {
-    $success = false;
-    if (isset($namesroleservice)) {
-
-        $username_param = lti_get_username_parameter_from_client_id($client_id);
-        if (empty($username_param)) {
-            //If custom username the custom paramters are not returned by membership service
-
-            $memberships_url = $namesroleservice['context_memberships_url'];
-            $service_version = $namesroleservice['service_version'];
-
-            // Getting access token with the scopes for the service calls we want to make
-            // so they are all authenticated (see serviceauth.php)
-            $scopes = [
-                "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
-                "https://purl.imsglobal.org/spec/lti-ags/scope/score",
-                "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly",
-                "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly"
-            ];
-
-            $access_token = get_access_token($iss, $client_id, $auth_url, $tool_private_key, $scopes);
-
-
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $memberships_url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Authorization: Bearer ' . $access_token
-            ]);
-            $members = json_decode(curl_exec($ch), true);
-
-            curl_close($ch);
-            if (isset($members['members'])) {
-                $blogType = new blogTypeLoader(isset($custom_params['blogtype']) ? $custom_params['blogtype'] : 'defaultType');
-                $overwrite_roles = isset($custom_params[OVERWRITE_ROLES]) ? $custom_params[OVERWRITE_ROLES] : false;
-                $success = true;
-                foreach ($members['members'] as $member) {
-                    $lti_user_id = $member['user_id'];
-                    $firstname = isset($member['given_name']) ? $member['given_name'] : '';
-                    $lastname = isset($member['family_name']) ? $member['family_name'] : '';
-                    $email = isset($member['email']) ? $member['email'] : '';
-                    $name = isset($member['display_name']) ? $member['display_name'] : '';
-                    $user_creted = false;
-                    if (!empty($email)) {
-                        $userkey = getUserkeyLTI($client_id, $iss, $deployment_id, $lti_user_id, $custom_params);
-                        $uinfo = get_user_by('login', $userkey);
-                        if (!isset($uinfo) || $uinfo == false) {
-                            $ret_id = wp_insert_user(array(
-                                'user_login' => $userkey,
-                                'user_nicename' => $userkey,
-                                'first_name' => $firstname,
-                                'last_name' => $lastname,
-                                'user_email' => $email,
-                                'display_name' => $name,
-                                'user_url' => 'http://'
-                            ));
-
-                            if (is_wp_error($ret_id)) {
-                                $data = intval($ret_id->get_error_data());
-                                if (!empty($data)) {
-                                    wp_die('<p>' . $ret_id->get_error_message() . '</p>',
-                                        __('User creation Failure', 'wordpress-mu-ltiadvantage'),
-                                        array('response' => $data, 'back_link' => true));
-                                } else {
-                                    exit;
-                                }
-                            }
-                            $uinfo = get_user_by('login', $userkey);
-                            $user_creted = true;
-
-                        }
-
-                        if ($uinfo && (!is_user_member_of_blog($uinfo->ID,
-                                    get_current_blog_id()) || $overwrite_roles || $user_creted)) {
-                            if (is_user_member_of_blog($uinfo->ID)) {
-                                remove_user_from_blog($uinfo->ID, get_current_blog_id());
-                            }
-                            $role = $blogType->roleMapping($member['roles']);
-                            if (is_multisite()) {
-                                add_user_to_blog(get_current_blog_id(), $uinfo->ID, $role);
-                            } else {
-                                wp_update_user(array('ID' => $uinfo->ID, 'role' => $role));
-                            }
-                        }
-                    }
-                }
-
-            }
-        }
-
-    }
-    return $success;
-}
 
 
 function lti_check_nonce($client_id, $nonce)
