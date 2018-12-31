@@ -3,6 +3,8 @@ This is a implementation of LTI 1.3 Advantage on Wordpress
 
 This code was developed during the IMS Europe Summit 2018 thanks to [James Rissler](https://github.com/jrissler) and [Martin Lenord](https://github.com/MartinLenord). We are using the PHP Library [https://github.com/IMSGlobal/lti-1-3-php-library](https://github.com/IMSGlobal/lti-1-3-php-library)
 
+Tested with Wordpress 4.9.X and 5.0.2
+
 ## Single or Multisite Wordpress
 You can use this plugin in a single Wordpress but the interesting use case is a Wordpress Multisite because each course will have a site.
 
