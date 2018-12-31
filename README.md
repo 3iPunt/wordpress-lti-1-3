@@ -5,6 +5,12 @@ This code was developed during the IMS Europe Summit 2018 thanks to [James Rissl
 
 Tested with Wordpress 4.9.X and 5.0.2
 
+## Features
+* SSO
+* Enabled membership role
+* Grades Management
+
+
 ## Single or Multisite Wordpress
 You can use this plugin in a single Wordpress but the interesting use case is a Wordpress Multisite because each course will have a site.
 
@@ -29,13 +35,14 @@ The parameters are:
 * Custom username parameter: a custom parameter to create a custom username instead use the issuer + "_"+ client_id + "_" + "deployment_id" + "user_id"
 * Has custom username: boolean to enable custom username
 * Enable: Check if tool is enabled or not
-* You can generate the public and private key, the public key can be set on platform to get membership users 
+* Enable grade: As default all clients allows grades
+* Student role: the student can be map as subscriber or author on Wordpress (Read about it on https://codex.wordpress.org/Roles_and_Capabilities#Subscriber)
+* You can generate the public and private key, the public key can be set on platform to get membership users
+
+_To create a Platform private and public key you can use ssh-keygen, search on internet how to do that, you will need the private and public key._  
 
 ## Next steps
 
-* Create a cron job to consume membership
-* Allow to assess students and return this grade to platform 
-* Store user role on membership
 * Certificate it! 
 
 
