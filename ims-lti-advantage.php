@@ -640,8 +640,10 @@ function lti_edit($row = false)
     echo "</table>";
     echo "<p><input type='submit' class='button-primary' value='" . __('Save',
             'wordpress-mu-ltiadvantage') . "' /></p></form>";
-    echo "<form method='POST'><input type='hidden' name='action' value='generate_priv_pub_key' /><p><input type='submit' class='button-primary' value='" . __('Generate new private and public key',
-            'wordpress-mu-ltiadvantage') . "' /></p>" . wp_nonce_field('lti') . "<input type='hidden' name='client_id' value='{$row->client_id}' /></form><br /><br />";
+    if (!$is_new) {
+        echo "<form method='POST'><input type='hidden' name='action' value='generate_priv_pub_key' /><p><input type='submit' class='button-primary' value='" . __('Generate new private and public key',
+                'wordpress-mu-ltiadvantage') . "' /></p>" . wp_nonce_field('lti') . "<input type='hidden' name='client_id' value='{$row->client_id}' /></form><br /><br />";
+    }
 }
 
 function lti_show_keys($row = false)
