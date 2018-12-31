@@ -117,7 +117,12 @@ class LTIGradesManagement
         $user_id = isset($_GET['user_id']) ? intval($_GET['user_id'], 10) : 0;
 
         if (empty($type) || $user_id == 0) {
-            $gradesListTable = new LTI_Grade_Table();
+            $lti_conf = lti_get_by_client_id($this->client_id);
+            $student_role = false;
+            if (isset($lti_conf)) {
+                $student_role = $lti_conf->student_role;
+            }
+            $gradesListTable = new LTI_Grade_Table(array(), $student_role);
             $gradesListTable->prepare_items();
             ?>
             <div class="wrap">
@@ -239,7 +244,7 @@ class LTIGradesManagement
         flush();
 
         $auth_url = $this->client->auth_token_url;
-        //TODO we need to stopre
+
         $success = $this->ltidoMembership($this->lti_issuer, $this->client_id, $auth_url, $this->client->private_key,
             $this->lti_namesroleservice,
             $this->lti_deployment_id,
@@ -266,6 +271,13 @@ class LTIGradesManagement
         $this->error = array();
         $success = false;
         if (isset($namesroleservice)) {
+
+            $lti_conf = lti_get_by_client_id($client_id);
+            $student_role = false;
+            if (isset($lti_conf)) {
+                $student_role = $lti_conf->student_role;
+            }
+
 
             $username_param = lti_get_username_parameter_from_client_id($client_id);
             if (empty($username_param)) {
@@ -347,7 +359,7 @@ class LTIGradesManagement
                                     if (is_user_member_of_blog($uinfo->ID)) {
                                         remove_user_from_blog($uinfo->ID, get_current_blog_id());
                                     }
-                                    $role = $blogType->roleMapping($member['roles']);
+                                    $role = $blogType->roleMapping($member['roles'], $student_role);
                                     if (is_multisite()) {
                                         add_user_to_blog(get_current_blog_id(), $uinfo->ID, $role);
                                     } else {

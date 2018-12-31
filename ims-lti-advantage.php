@@ -189,7 +189,7 @@ function lti_do_actions($jwt_body, $client_id, $row)
                 'first_name' => $jwt_body['given_name'],
                 'last_name' => $jwt_body['family_name'],
                 'user_email' => $jwt_body['email'],
-                'user_pass' => wp_generate_password( 10, true, true ),
+                'user_pass' => wp_generate_password(10, true, true),
                 'display_name' => $jwt_body['name'],
                 'user_url' => 'http://'
             ));
@@ -289,12 +289,11 @@ function lti_do_actions($jwt_body, $client_id, $row)
         if (isset($blog_id)) {
 
 
-
             if (is_multisite()) {
                 switch_to_blog($blog_id);
             }
 
-            $urlclaim = isset($jwt_body["https://purl.imsglobal.org/spec/lti-ags/claim/endpoint"])?$jwt_body["https://purl.imsglobal.org/spec/lti-ags/claim/endpoint"]:false;
+            $urlclaim = isset($jwt_body["https://purl.imsglobal.org/spec/lti-ags/claim/endpoint"]) ? $jwt_body["https://purl.imsglobal.org/spec/lti-ags/claim/endpoint"] : false;
             LTIGradesManagement::lti_save_url_claim($uinfo->ID, $urlclaim);
             LTIGradesManagement::lti_save_resource_link($uinfo->ID, $resource_link);
 
@@ -329,7 +328,13 @@ function lti_do_actions($jwt_body, $client_id, $row)
             $obj->uinfoID = $uinfo->ID;
             $obj->blog_is_new = $blog_is_new;
             if ($overwrite_roles || ($old_role == null) || $old_role == false) {
-                $obj->role = $blogType->roleMapping($jwt_body['https://purl.imsglobal.org/spec/lti/claim/roles']);
+                $lti_conf = lti_get_by_client_id($client_id);
+                $student_role = false;
+                if (isset($lti_conf)) {
+                    $student_role = $lti_conf->student_role;
+                }
+
+                $obj->role = $blogType->roleMapping($jwt_body['https://purl.imsglobal.org/spec/lti/claim/roles'], $student_role);
             } else {
                 $obj->role = $old_role;
             }
@@ -460,9 +465,6 @@ function lti_client_id_admin()
         return false;
     }
 
-    switch ($_POST['action']) {
-        default:
-    }
     lti_maybe_create_db();
     $wpdb->ltitable = $wpdb->base_prefix . 'lti_clients';
     $is_editing = false;
@@ -514,20 +516,28 @@ function lti_client_id_admin()
             case "save":
                 $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->ltitable} WHERE client_id = %s",
                     $client_id));
+                $key_set_url = isset($_POST['key_set_url']) ? $_POST['key_set_url'] : '';
+                $auth_token_url = isset($_POST['auth_token_url']) ? $_POST['auth_token_url'] : '';
+                $enabled = isset($_POST['enabled']) ? $_POST['enabled'] : 0;
+                $custom_username_parameter = isset($_POST['custom_username_parameter']) ? $_POST['custom_username_parameter'] : '';
+                $has_custom_username_parameter = isset($_POST['has_custom_username_parameter']) ? $_POST['has_custom_username_parameter'] : 0;
+                $grades_enabled = isset($_POST['grades_enabled']) ? $_POST['grades_enabled'] : 0;
+                $student_role = isset($_POST['v']) ? $_POST['student_role'] : '';
                 if ($row) {
-                    $wpdb->query($wpdb->prepare("UPDATE {$wpdb->ltitable} SET  key_set_url = %s, auth_token_url = %s, enabled = %d, custom_username_parameter = %s, has_custom_username_parameter = %d, grades_enabled= %d  WHERE client_id = %s",
-                        $_POST['key_set_url'], $_POST['auth_token_url'], $_POST['enabled'],
-                        $_POST['custom_username_parameter'],
-                        $_POST['has_custom_username_parameter'], $_POST['grades_enabled'], $client_id));
+                    $wpdb->query($wpdb->prepare("UPDATE {$wpdb->ltitable} SET  key_set_url = %s, auth_token_url = %s, enabled = %d, custom_username_parameter = %s, has_custom_username_parameter = %d, grades_enabled= %d, student_role = %s  WHERE client_id = %s",
+                        $key_set_url, $auth_token_url, $enabled,
+                        $custom_username_parameter,
+                        $has_custom_username_parameter, $grades_enabled, $student_role, $client_id));
                     ?>
                     <div id="message" class="updated fade"><p><strong><?php _e('LTI Tool updated.',
                                     'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
                 } else {
-                    $wpdb->query($wpdb->prepare("INSERT INTO {$wpdb->ltitable} ( `client_id`, `key_set_url`, `auth_token_url`, `enabled`, `custom_username_parameter`, `has_custom_username_parameter`, `grades_enabled`) VALUES ( %s, %s, %s, %d, %s, %d, %d)",
-                        $client_id, $_POST['key_set_url'], $_POST['auth_token_url'], $_POST['enabled'],
-                        $_POST['custom_username_parameter'],
-                        $_POST['has_custom_username_parameter'],
-                        $_POST['grades_enabled']));
+                    $wpdb->query($wpdb->prepare("INSERT INTO {$wpdb->ltitable} ( `client_id`, `key_set_url`, `auth_token_url`, `enabled`, `custom_username_parameter`, `has_custom_username_parameter`, `grades_enabled`, `student_role`) VALUES ( %s, %s, %s, %d, %s, %d, %d, %s)",
+                        $client_id, $key_set_url, $auth_token_url, $enabled,
+                        $custom_username_parameter,
+                        $has_custom_username_parameter,
+                        $grades_enabled,
+                        $student_role));
                     ?>
                     <div id="message" class="updated fade"><p><strong><?php _e('LTI Tool added.',
                                     'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
@@ -543,18 +553,19 @@ function lti_client_id_admin()
     }
 
     if (!$is_editing) {
+        $search_str = isset($_POST['search_txt']) ? $_POST['search_txt'] : '';
         echo "<h3>" . __('Search', 'wordpress-mu-ltiadvantage') . "</h3>";
-        $escaped_search = addslashes($_POST['search_txt']);
+        $escaped_search = addslashes($search_str);
         $rows = $wpdb->get_results("SELECT * FROM {$wpdb->ltitable} WHERE client_id LIKE '%{$escaped_search}%' ");
         lti_listing($rows,
             empty($escaped_search) ? '' : sprintf(__("Searching for \"%s\"", 'wordpress-mu-ltiadvantage'),
-                esc_html($_POST['search_txt'])));
+                esc_html($search_str)));
         echo '<form method="POST">';
         wp_nonce_field('lti');
         echo '<input type="hidden" name="action" value="search" />';
         echo '<p>';
         echo _e("Search:", 'wordpress-mu-ltiadvantage');
-        echo " <input type='text' name='search_txt' value='" . esc_html($_POST['search_txt']) . "' /></p>";
+        echo " <input type='text' name='search_txt' value='" . esc_html($search_str) . "' /></p>";
         echo "<p><input type='submit' class='button-secondary' value='" . __('Search',
                 'wordpress-mu-ltiadvantage') . "' /></p>";
         echo "</form><br />";
@@ -574,9 +585,11 @@ function lti_edit($row = false)
         $row->key_set_url = '';
         $row->auth_token_url = '';
         $row->enabled = 1;
-        $row->grades_enabled = 0;
+        $row->grades_enabled = 1;
+        $row->student_role = 'subscriber';
         $row->has_custom_username_parameter = 0;
         $row->custom_username_parameter = '';
+        $row->public_key = '';
         $is_new = true;
     }
 
@@ -607,6 +620,15 @@ function lti_edit($row = false)
 
     echo $row->grades_enabled == 1 ? 'checked=1 ' : ' ';
     echo "/></td></tr>\n";
+
+    $options = '<option value="subscriber" ' . ($row->student_role == 'subscriber' ? 'selected' : '') . '>' . __('Subscriber',
+            'wordpress-mu-ltiadvantage') . '</option>';
+    $options .= '<option value="author" ' . ($row->student_role == 'author' ? 'selected' : '') . '>' . __('Author',
+            'wordpress-mu-ltiadvantage') . '</option>';
+    echo "<tr><th>" . __('Student Role',
+            'wordpress-mu-ltiadvantage') . "</th><td><select name='student_role'>'.$options.'</select>";
+
+    echo "</td></tr>\n";
 
     echo "<tr><th>" . __('Public key',
             'wordpress-mu-ltiadvantage') . "</th><td><textarea readonly cols='60' rows  ='5'>" . $row->public_key . "</textarea>";
@@ -693,6 +715,7 @@ function lti_maybe_create_db()
                   custom_username_parameter varchar(255) DEFAULT NULL,
                   has_custom_username_parameter decimal(1,0) default 0,
                   grades_enabled decimal(1,0) default 0,
+                  student_role varchar(30) default 'subscriber',
                   created datetime NOT NULL,
                   updated datetime NOT NULL,
                   PRIMARY KEY (client_id)
@@ -787,8 +810,6 @@ function add_lti_plugin_activate()
         wp_die('Sorry, but this plugin requires the wp-session-manager to be installed and active. <br><a href="' . admin_url('plugins.php') . '">&laquo; Return to Plugins</a>');
     }
 }
-
-
 
 
 function lti_check_nonce($client_id, $nonce)

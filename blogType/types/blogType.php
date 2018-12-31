@@ -51,8 +51,9 @@ interface blogType
      *
      * Returns the role from LTI to Wordpress
      * @param String $roles
+     * @param String $student_role this role can be overwrited by default configuration
 	 */
-    public function roleMapping($roles);
+    public function roleMapping($roles, $student_role);
     /**
      * This function contains the last actions before show blog
      */

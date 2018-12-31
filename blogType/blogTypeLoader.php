@@ -80,8 +80,8 @@ class blogTypeLoader {
 		return $this->blogTypeClass->getLanguage();
 	}
 
-	public function roleMapping($roles) {
-	     return $this->blogTypeClass->roleMapping($roles);
+	public function roleMapping($roles, $student_role) {
+	     return $this->blogTypeClass->roleMapping($roles, $student_role);
 	}
 
 	public function loadPlugins() {

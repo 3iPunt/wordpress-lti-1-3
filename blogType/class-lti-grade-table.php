@@ -11,6 +11,7 @@ class LTI_Grade_Table extends WP_List_Table
 {
 
     private $post_types = array();
+    private $student_role = 'subscriber';
     const POST_TYPE_TO_AVOID = array(
         'revision',
         'nav_menu_item',
@@ -20,7 +21,7 @@ class LTI_Grade_Table extends WP_List_Table
         'user_request'
     );
 
-    public function __construct($args = array())
+    public function __construct($args = array(), $student_role = 'subscriber')
     {
         $args = wp_parse_args($args, array(
             'plural' => __('Students', LTIGradesManagement::$DOMAIN),
@@ -29,7 +30,10 @@ class LTI_Grade_Table extends WP_List_Table
             'screen' => null,
         ));
         // Currently the students are subscribers then can not create content
-        // $this->get_post_types();
+        $this->student_role = $student_role;
+        if ($this->student_role !== false && $this->student_role !== 'subscriber') {
+            $this->get_post_types();
+        }
         parent::__construct($args);
     }
 
@@ -74,7 +78,7 @@ class LTI_Grade_Table extends WP_List_Table
         $hidden = $this->get_hidden_columns();
         $sortable = $this->get_sortable_columns();
 
-        $students = get_users(array('role' => 'subscriber'));
+        $students = get_users(array('role' => $this->student_role !== false ? $this->student_role : 'subscriber'));
         $data = array();
         foreach ($students as $student) {
             $item = array('ID' => $student->ID, 'student' => $student->display_name);
@@ -149,7 +153,7 @@ class LTI_Grade_Table extends WP_List_Table
     public function column_default($item, $column_name)
     {
         if (in_array($column_name, $this->post_types)) {
-            return $item[$column_name] > 0 ? '<a href=' . $this->get_page($column_name,
+            return $item[$column_name] > 0 ? '<a href=' . get_author_posts_url(
                     $item['ID']) . ' target="_blank">' . $item[$column_name] . '</a>' : $item[$column_name];
         }
         switch ($column_name) {
