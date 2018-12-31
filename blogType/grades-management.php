@@ -259,14 +259,15 @@ class LTIGradesManagement
         }
     }
 
-    private function ltidoMembership(
+    public function ltidoMembership(
         $iss,
         $client_id,
         $auth_url,
         $tool_private_key,
         $namesroleservice,
         $deployment_id,
-        $custom_params
+        $custom_params,
+        $lti_user_id_to_check = false
     ) {
         $this->error = array();
         $success = false;
@@ -284,7 +285,7 @@ class LTIGradesManagement
                 //If custom username the custom paramters are not returned by membership service
 
                 $memberships_url = $namesroleservice['context_memberships_url'];
-                $service_version = $namesroleservice['service_version'];
+                //$service_version = $namesroleservice['service_versions'];
 
                 // Getting access token with the scopes for the service calls we want to make
                 // so they are all authenticated (see serviceauth.php)
@@ -355,7 +356,7 @@ class LTIGradesManagement
                                 }
 
                                 if ($uinfo && (!is_user_member_of_blog($uinfo->ID,
-                                            get_current_blog_id()) || $overwrite_roles || $user_creted)) {
+                                            get_current_blog_id()) || $overwrite_roles || $user_creted || $lti_user_id_to_check !== false)) {
                                     if (is_user_member_of_blog($uinfo->ID)) {
                                         remove_user_from_blog($uinfo->ID, get_current_blog_id());
                                     }
@@ -364,6 +365,9 @@ class LTIGradesManagement
                                         add_user_to_blog(get_current_blog_id(), $uinfo->ID, $role);
                                     } else {
                                         wp_update_user(array('ID' => $uinfo->ID, 'role' => $role));
+                                    }
+                                    if ($lti_user_id_to_check === $lti_user_id) {
+                                        $success = $role;
                                     }
                                 }
                             }
@@ -673,6 +677,7 @@ function lti_gradesmanagement_instantiate()
 {
     global $lti_gradesmanagement;
     $lti_gradesmanagement = LTIGradesManagement::get_instance();
+    return $lti_gradesmanagement;
 }
 
 

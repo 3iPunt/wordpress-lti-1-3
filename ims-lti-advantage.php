@@ -304,21 +304,7 @@ function lti_do_actions($jwt_body, $client_id, $row)
             //Agafem el rol anterior
             $old_role = null;
             if (!$created_user && !$blog_created && !$overwrite_roles) {
-                if (is_multisite()) {
-                    if (!$blog_created && !$overwrite_roles) {
-                        $old_role_array = get_user_meta($user->ID, 'wp_' . $blog_id . '_capabilities');
-                        if ($old_role_array && count($old_role_array) > 0) {
-                            foreach ($old_role_array as $key => $value) {
-                                if ($value == true) {
-                                    $old_role = $key;
-                                }
-                            }
-                        }
-                    }
-                    remove_user_from_blog($uinfo->ID, $blog_id);
-                } else {
-                    $old_role = get_current_user_role($uinfo->ID);
-                }
+                $old_role = get_current_user_role($uinfo->ID);
             }
             $obj = new stdClass();
             $obj->blog_id = $blog_id;
@@ -335,13 +321,31 @@ function lti_do_actions($jwt_body, $client_id, $row)
                 }
 
                 $obj->role = $blogType->roleMapping($jwt_body['https://purl.imsglobal.org/spec/lti/claim/roles'], $student_role);
+                $auth_url = $row->auth_token_url;
+                if (!empty($auth_url) && !empty($row->private_key)) {
+
+                    $lti_deployment_id = get_option('lti_deployment_id');
+                    $lti_namesroleservice = get_option('lti_namesroleservice');
+                    $lti_custom_params = get_option('lti_custom_params');
+                    $lti_gradesmanagement = lti_gradesmanagement_instantiate();
+                    $success = $lti_gradesmanagement->ltidoMembership($issuer_id, $client_id, $auth_url, $row->private_key,
+                        $lti_namesroleservice,
+                        $lti_deployment_id,
+                        $lti_custom_params, $lti_user_id);
+                    if ($success !== false) {
+                        //We have the role here!!
+                        $obj->role = $success;
+                    }
+                }
+
+                if (is_multisite()) {
+                    add_user_to_blog($blog_id, $uinfo->ID, $obj->role);
+                } else {
+                    wp_update_user(array('ID' => $uinfo->ID, 'role' => $obj->role));
+                }
+
             } else {
                 $obj->role = $old_role;
-            }
-            if (is_multisite()) {
-                add_user_to_blog($blog_id, $uinfo->ID, $obj->role);
-            } else {
-                wp_update_user(array('ID' => $uinfo->ID, 'role' => $obj->role));
             }
             $blogType->postActions($obj);
         }
