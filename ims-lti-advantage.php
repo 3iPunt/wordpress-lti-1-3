@@ -522,7 +522,7 @@ function lti_client_id_admin()
                 $custom_username_parameter = isset($_POST['custom_username_parameter']) ? $_POST['custom_username_parameter'] : '';
                 $has_custom_username_parameter = isset($_POST['has_custom_username_parameter']) ? $_POST['has_custom_username_parameter'] : 0;
                 $grades_enabled = isset($_POST['grades_enabled']) ? $_POST['grades_enabled'] : 0;
-                $student_role = isset($_POST['v']) ? $_POST['student_role'] : '';
+                $student_role = isset($_POST['student_role']) ? $_POST['student_role'] : '';
                 if ($row) {
                     $wpdb->query($wpdb->prepare("UPDATE {$wpdb->ltitable} SET  key_set_url = %s, auth_token_url = %s, enabled = %d, custom_username_parameter = %s, has_custom_username_parameter = %d, grades_enabled= %d, student_role = %s  WHERE client_id = %s",
                         $key_set_url, $auth_token_url, $enabled,
