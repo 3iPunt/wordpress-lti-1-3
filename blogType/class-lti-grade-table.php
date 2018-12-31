@@ -18,7 +18,8 @@ class LTI_Grade_Table extends WP_List_Table
         'custom_css',
         'customize_changeset',
         'oembed_cache',
-        'user_request'
+        'user_request',
+        'wp_block'
     );
 
     public function __construct($args = array(), $student_role = 'subscriber')
