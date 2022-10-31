@@ -39,15 +39,15 @@ The parameters are:
 * Student role: the student can be map as subscriber or author on Wordpress (Read about it on https://codex.wordpress.org/Roles_and_Capabilities#Subscriber)
 * You can generate the public and private key, the public key can be set on platform to get membership users
 
-_To create a Platform private and public key you can use ssh-keygen, search on internet how to do that, you will need the private and public key._  
+To create a Platform private and public key you can use ssh-keygen, search on internet how to do that, you will need the private and public key._  
 
 
 
-## Actions
+## Supported Filters and Actions 
 
 This plugin allows to add some filters and actions
 
-### apply_filters
+### Filters
 
 LTI 1.3 allows to share name and email information:
 
@@ -112,7 +112,19 @@ function lti_filter_get_email($email, $userkey)
 ````
 
 
+### Actions
 
+The plugin allows send back a grade without using gradebook. To do that you can call to the action lti_send_grade
+
+```PHP
+do_action( 'lti_send_grade', $user_id, $grade, $comment );
+```
+
+The fields are:
+
+* _$user_id_: the affected user id
+* _$grade_: grade from 0 to 100 
+* _$comment_: string with comment to show
 
 ## Next steps
 

@@ -30,7 +30,6 @@ class LTIAdvantageManagement
     private $lti_issuer;
     private $lti_deployment_id;
     private $lti_custom_params;
-    private $lti_namesroleservice;
     private $error;
     private $members_result;
 
@@ -39,21 +38,26 @@ class LTIAdvantageManagement
      */
     public function __construct()
     {
-        $this->client_id = get_option('lti_clientid');
-        $this->lti_issuer = get_option('lti_issuer');
-        $this->lti_deployment_id = get_option('lti_deployment_id');
-        $this->lti_custom_params = get_option('lti_custom_params');
-        $this->lti_namesroleservice = get_option('lti_namesroleservice');
-        if ($this->client_id && $this->lti_issuer) {
-            $this->client = LTIUtils::lti_get_by_client_id($this->client_id);
-            if ($this->client && $this->client->grades_enabled == 1) {
+        $launch = get_user_meta(get_current_user_id(), 'lti_launch_' . get_current_blog_id(), true);
+        if ($launch) {
+            $launch_data = $launch->get_launch_data();
+            $this->client_id = is_array($launch_data['aud']) ? $launch_data['aud'][0] : $launch_data['aud'];
+            $this->lti_issuer = $launch_data['iss'];
+            $this->lti_deployment_id = $launch_data['https://purl.imsglobal.org/spec/lti/claim/deployment_id'];
+            $this->lti_custom_params = $launch_data['https://purl.imsglobal.org/spec/lti/claim/custom'];
+            if ($this->client_id && $this->lti_issuer) {
+                $this->client = LTIUtils::lti_get_by_client_id($this->client_id);
+                if ($this->client) {
 
-                load_plugin_textdomain(self::$DOMAIN, false, dirname(plugin_basename(__FILE__)) . '/../lang');
-                add_action('admin_menu', array($this, 'add_lti_grades_management_menu'));
-                add_action('admin_init', array($this, 'admin_add_css_js'));
-                add_action('wp_ajax_save_grade_lti', array($this, 'save_grade_lti'));
+                    load_plugin_textdomain(self::$DOMAIN, false, dirname(plugin_basename(__FILE__)) . '/../lang');
+                    add_action('admin_menu', array($this, 'add_lti_grades_management_menu'));
+                    add_action('admin_init', array($this, 'admin_add_css_js'));
+                    add_action('wp_ajax_save_grade_lti', array($this, 'save_grade_lti'));
 
+                }
             }
+            add_action('lti_send_grade', array($this, 'save_internal_grade'), 10, 3);
+
         }
     }
 
@@ -363,7 +367,7 @@ class LTIAdvantageManagement
 
                         if ($uinfo &&
                             ((is_multisite() && !is_user_member_of_blog($uinfo->ID,
-                                    get_current_blog_id())) ||
+                                        get_current_blog_id())) ||
                                 $overwrite_roles ||
                                 $user_creted ||
                                 $lti_user_id_to_check !== false)) {
@@ -392,62 +396,6 @@ class LTIAdvantageManagement
         return $success;
     }
 
-    private function ltiStoreGrade(
-
-        $iss,
-        $client_id,
-        $auth_url,
-        $tool_private_key,
-        $lti_user_id,
-        $grade,
-        $comment,
-        $claim_url,
-        $max_score
-    )
-    {
-        $success = false;
-        if (isset($claim_url)) {
-
-// Getting access token with the scopes for the service calls we want to make
-// so they are all authenticated (see serviceauth.php)
-            $access_token = get_access_token($iss, $client_id, $auth_url, $tool_private_key,
-                [
-                    "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
-                    "https://purl.imsglobal.org/spec/lti-ags/scope/score"
-                ]);
-
-// Build grade book request
-            $grade_call = [
-                "scoreGiven" => $grade,
-                "scoreMaximum" => $max_score,
-                "comment" => $comment,
-                "activityProgress" => self::$ACTIVITY_PROGRESS,
-                "gradingProgress" => self::$GRADING_PROGRESS,
-                "timestamp" => date('Y-m-d\TH:i:s') . "+00:00",
-                "userId" => $lti_user_id
-            ];
-
-// Call grade book line item endpoint to send back a grade
-            $line_item_url = $claim_url['lineitem'];
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $line_item_url . '/scores');
-            curl_setopt($ch, CURLOPT_POST, 1);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($grade_call));
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Authorization: Bearer ' . $access_token,
-                'Content-Type: application/vnd.ims.lis.v1.score+json'
-            ]);
-            $success = curl_exec($ch);
-            curl_close($ch);
-
-        } else {
-            $this->error[] = __('Platform doesn\'t have membership enabled', self::$DOMAIN);
-        }
-        return $success;
-    }
-
-
     /**
      * Returns the user grade
      * @param $user_id
@@ -473,6 +421,55 @@ class LTIAdvantageManagement
         return $comment;
     }
 
+    function save_internal_grade($userid, $grade, $comment) {
+        $ret = array('result' => false, 'error' => false);
+        if ($userid !== false && $grade !== false) {
+            update_option(self::$USER_PREFIX_OPTION . $userid, $grade);
+            update_option(self::$USER_PREFIX_OPTION_COMMENT . $userid, $comment);
+            $lti_user_id = get_user_meta($userid, self::$LTI_METAKEY_USER_ID, true);
+            $launch = get_user_meta(get_current_user_id(), 'lti_launch_' . get_current_blog_id(), true);
+            if ($lti_user_id && $launch && $launch->has_ags()) {
+
+                $grades = $launch->get_ags();
+                $score = LTI\LTI_Grade::new()
+                    ->set_score_given($grade)
+                    ->set_score_maximum(self::$MAX_GRADE)
+                    ->set_timestamp(date(DateTime::ISO8601))
+                    ->set_activity_progress(self::$ACTIVITY_PROGRESS)
+                    ->set_grading_progress(self::$GRADING_PROGRESS)
+                    ->set_comment($comment)
+                    ->set_user_id($lti_user_id);
+
+
+                $tag = $this->client->grade_column_tag;
+                $label = $this->client->grade_column_name;
+                $score_lineitem = LTI\LTI_Lineitem::new()
+                    ->set_tag($tag)
+                    ->set_score_maximum(self::$MAX_GRADE)
+                    ->set_label($label)
+                    ->set_start_date_time('')
+                    ->set_end_date_time('')
+                    ->set_resource_id($launch->get_launch_data()['https://purl.imsglobal.org/spec/lti/claim/resource_link']['id']);
+
+                $success = $grades->put_grade($score, $score_lineitem);
+
+                $ret['result'] = $success;
+                if (!$success) {
+                    $ret['error'] = __('Error storing grade on platform', self::$DOMAIN);
+                }
+            } else {
+                $ret['result'] = false;
+                $ret['error'] = __('Don\'t allow to send back grades. Review LMS configuraton', self::$DOMAIN);
+            }
+
+        } else {
+            $ret['result'] = false;
+            $ret['error'] = __('Missing user id or grade', self::$DOMAIN);
+        }
+
+        return $ret;
+    }
+
 
     /**
      * Stores an user grade
@@ -489,49 +486,7 @@ class LTIAdvantageManagement
             $ret['result'] = false;
             $ret['error'] = __('You are not allowed to perform this operation', self::$DOMAIN);
         } else {
-            if ($userid !== false && $grade !== false) {
-                update_option(self::$USER_PREFIX_OPTION . $userid, $grade);
-                update_option(self::$USER_PREFIX_OPTION_COMMENT . $userid, $comment);
-                $lti_user_id = get_user_meta($userid, self::$LTI_METAKEY_USER_ID, true);
-                $launch = get_user_meta(get_current_user_id(), 'lti_launch_' . get_current_blog_id(), true);
-                if ($lti_user_id && $launch && $launch->has_ags()) {
-
-                    $grades = $launch->get_ags();
-                    $score = LTI\LTI_Grade::new()
-                        ->set_score_given($grade)
-                        ->set_score_maximum(self::$MAX_GRADE)
-                        ->set_timestamp(date(DateTime::ISO8601))
-                        ->set_activity_progress(self::$ACTIVITY_PROGRESS)
-                        ->set_grading_progress(self::$GRADING_PROGRESS)
-                        ->set_comment($comment)
-                        ->set_user_id($lti_user_id);
-
-                    // TODO define tag and label
-                    $tag = 'score';
-                    $label = 'Score';
-                    $score_lineitem = LTI\LTI_Lineitem::new()
-                        ->set_tag($tag)
-                        ->set_score_maximum(self::$MAX_GRADE)
-                        ->set_label($label)
-                        ->set_start_date_time('')
-                        ->set_end_date_time('')
-                        ->set_resource_id($launch->get_launch_data()['https://purl.imsglobal.org/spec/lti/claim/resource_link']['id']);
-
-                    $success = $grades->put_grade($score, $score_lineitem);
-
-                    $ret['result'] = $success;
-                    if (!$success) {
-                        $ret['error'] = __('Error storing grade on platform', self::$DOMAIN);
-                    }
-                } else {
-                    $ret['result'] = false;
-                    $ret['error'] = __('Don\'t allow to send back grades. Review LMS configuraton', self::$DOMAIN);
-                }
-
-            } else {
-                $ret['result'] = false;
-                $ret['error'] = __('Missing user id or grade', self::$DOMAIN);
-            }
+            $this->save_internal_grade($userid, $grade, $comment);
         }
         echo json_encode($ret);
 

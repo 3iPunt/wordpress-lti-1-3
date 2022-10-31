@@ -67,11 +67,7 @@ function lti_client_id_admin()
             case "generate_priv_pub_key":
                 $row = LTIUtils::lti_get_by_client_id($client_id);
                 if ($row) {
-                    $keys = lti_generate_private_public_key();
-
-                    $wpdb->query($wpdb->prepare("UPDATE " . lti_13_get_table() . " SET  private_key = %s, public_key = %s  WHERE client_id = %s",
-                        $keys['privKey'], $keys['pubKey'], $client_id));
-
+                    lti_generate_public_and_private_key($client_id);
                     $row = LTIUtils::lti_get_by_client_id($client_id);
 
                     lti_show_keys($row);
@@ -92,25 +88,30 @@ function lti_client_id_admin()
                 $enabled = isset($_POST['enabled']) ? $_POST['enabled'] : 0;
                 $custom_username_parameter = isset($_POST['custom_username_parameter']) ? $_POST['custom_username_parameter'] : '';
                 $has_custom_username_parameter = isset($_POST['has_custom_username_parameter']) ? $_POST['has_custom_username_parameter'] : 0;
-                $grades_enabled = isset($_POST['grades_enabled']) ? $_POST['grades_enabled'] : 0;
+                $grade_column_tag = isset($_POST['grade_column_tag']) ? $_POST['grade_column_tag'] : '';
+                $grade_column_name = isset($_POST['grade_column_name']) ? $_POST['grade_column_name'] : '';
                 $student_role = isset($_POST['student_role']) ? $_POST['student_role'] : '';
                 $deployments_ids = isset($_POST['deployments_ids']) ? $_POST['deployments_ids'] : '';
                 if ($row) {
-                    $wpdb->query($wpdb->prepare("UPDATE " . lti_13_get_table() . " SET  auth_login_url = %s, issuer = %s, key_set_url = %s, auth_token_url = %s, enabled = %d, custom_username_parameter = %s, has_custom_username_parameter = %d, grades_enabled= %d, student_role = %s, deployments_ids = %s  WHERE client_id = %s",
+                    $wpdb->query($wpdb->prepare("UPDATE " . lti_13_get_table() . " SET  auth_login_url = %s, issuer = %s, key_set_url = %s, auth_token_url = %s, enabled = %d, custom_username_parameter = %s, has_custom_username_parameter = %d, grade_column_tag= %s, grade_column_name= %s, student_role = %s, deployments_ids = %s, updated = now()  WHERE client_id = %s",
                         $auth_login_url, $issuer, $key_set_url, $auth_token_url, $enabled,
-                        $custom_username_parameter,
-                        $has_custom_username_parameter, $grades_enabled, $student_role, $deployments_ids, $client_id));
+                        $custom_username_parameter, $has_custom_username_parameter, $grade_column_tag,
+                        $grade_column_name, $student_role, $deployments_ids, $client_id));
                     ?>
                     <div id="message" class="updated fade"><p><strong><?php _e('LTI Tool updated.',
                                     'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
                 } else {
-                    $wpdb->query($wpdb->prepare("INSERT INTO " . lti_13_get_table() . " ( `client_id`, `auth_login_url`, `issuer`, `key_set_url`, `auth_token_url`, `enabled`, `custom_username_parameter`, `has_custom_username_parameter`, `grades_enabled`, `student_role`, `deployments_ids`) VALUES ( %s, %s, %s, %s, %s, %d, %s, %d, %d, %s, %s)",
+                    $wpdb->query($wpdb->prepare("INSERT INTO " . lti_13_get_table() . " ( `client_id`, `auth_login_url`, `issuer`, `key_set_url`, `auth_token_url`, `enabled`, `custom_username_parameter`, `has_custom_username_parameter`, `grade_column_tag`, `grade_column_name`, `student_role`, `deployments_ids`, `created`, `updated`) VALUES ( %s, %s, %s, %s, %s, %d, %s, %d, %s, %s, %s, %s, now(), now())",
                         $client_id, $auth_login_url, $issuer, $key_set_url, $auth_token_url, $enabled,
                         $custom_username_parameter,
                         $has_custom_username_parameter,
-                        $grades_enabled,
+                        $grade_column_tag,
+                        $grade_column_name,
                         $student_role,
                         $deployments_ids));
+                    lti_generate_public_and_private_key($client_id);
+
+
                     ?>
                     <div id="message" class="updated fade"><p><strong><?php _e('LTI Tool added.',
                                     'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
@@ -146,6 +147,14 @@ function lti_client_id_admin()
     }
 }
 
+function lti_generate_public_and_private_key($client_id) {
+    global $wpdb;
+    $keys = lti_generate_private_public_key();
+
+    return $wpdb->query($wpdb->prepare("UPDATE " . lti_13_get_table() . " SET  private_key = %s, public_key = %s  WHERE client_id = %s",
+        $keys['privKey'], $keys['pubKey'], $client_id));
+}
+
 function lti_edit($row = false)
 {
     $is_new = false;
@@ -160,7 +169,8 @@ function lti_edit($row = false)
         $row->key_set_url = '';
         $row->auth_token_url = '';
         $row->enabled = 1;
-        $row->grades_enabled = 1;
+        $row->grade_column_tag = '';
+        $row->grade_column_name = '';
         $row->student_role = 'subscriber';
         $row->has_custom_username_parameter = 0;
         $row->custom_username_parameter = '';
@@ -197,11 +207,10 @@ function lti_edit($row = false)
     echo $row->enabled == 1 ? 'checked=1 ' : ' ';
     echo "/></td></tr>\n";
 
-    echo "<tr><th>" . __('Grades Enabled',
-            'wordpress-mu-ltiadvantage') . "</th><td><input type='checkbox' name='grades_enabled' value='1' ";
-
-    echo $row->grades_enabled == 1 ? 'checked=1 ' : ' ';
-    echo "/></td></tr>\n";
+    echo "<tr><th>" . __('Grade Column tag',
+            'wordpress-mu-ltiadvantage') . "</th><td><input type='text' name='grade_column_tag' value='{$row->grade_column_tag}' /></td></tr>\n";
+    echo "<tr><th>" . __('Grade Column name',
+            'wordpress-mu-ltiadvantage') . "</th><td><input type='text' name='grade_column_name' value='{$row->grade_column_name}' /></td></tr>\n";
 
     $options = '<option value="subscriber" ' . ($row->student_role == 'subscriber' ? 'selected' : '') . '>' . __('Subscriber',
             'wordpress-mu-ltiadvantage') . '</option>';
@@ -378,7 +387,8 @@ function lti_maybe_create_db()
                   public_key mediumtext NULL,
                   custom_username_parameter varchar(255) DEFAULT NULL,
                   has_custom_username_parameter decimal(1,0) default 0,
-                  grades_enabled decimal(1,0) default 0,
+                  grade_column_tag varchar(255) default '',
+                  grade_column_name varchar(255) default '',
                   student_role varchar(30) default 'subscriber',
                   created datetime NOT NULL,
                   updated datetime NOT NULL,
