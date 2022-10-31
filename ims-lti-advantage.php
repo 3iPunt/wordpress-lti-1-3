@@ -39,7 +39,7 @@ function lti_client_id_admin()
     echo '<h2>' . __('LTI: Clients', 'wordpress-mu-ltiadvantage') . '</h2>';
     if (!empty($_POST['action'])) {
         check_admin_referer('lti');
-        $client_id = $_POST['client_id'];
+        $client_id = $_POST['client_id'] ?? '';
         switch ($_POST['action']) {
             case "edit":
                 $row = LTIUtils::lti_get_by_client_id($client_id);
@@ -123,11 +123,15 @@ function lti_client_id_admin()
                 <div id="message" class="updated fade"><p><strong><?php _e('LTI Tool deleted.',
                                 'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
                 break;
+            case "save-settings":
+                lti_store_plugin_settings($_POST['show_gradebook_to_teachers'] ?? 0, $_POST['show_sync_members_to_teachers'] ?? 0);
+                break;
         }
     }
 
     if (!$is_editing) {
-        $search_str = isset($_POST['search_txt']) ? $_POST['search_txt'] : '';
+        $search_str = $_POST['search_txt'] ?? '';
+        $action = $_POST['action'] ?? 'search';
         echo "<h3>" . __('Search', 'wordpress-mu-ltiadvantage') . "</h3>";
         $escaped_search = addslashes($search_str);
         $rows = $wpdb->get_results("SELECT * FROM " . lti_13_get_table() . " WHERE client_id LIKE '%{$escaped_search}%' ");
@@ -143,8 +147,43 @@ function lti_client_id_admin()
         echo "<p><input type='submit' class='button-secondary' value='" . __('Search',
                 'wordpress-mu-ltiadvantage') . "' /></p>";
         echo "</form><br />";
+
+        $show_gradebook_to_teachers = get_lti_show_gradebook_to_teachers();
+        $show_sync_members_to_teachers = get_lti_show_sync_members_to_teachers();
+
+        echo '<form method="POST">';
+        wp_nonce_field('lti');
+        echo "<h3>" . __('Gradebook configuration', 'wordpress-mu-ltiadvantage') . "</h3>";
+        echo "<p>" . __('Show Gradebook to instructors', 'wordpress-mu-ltiadvantage') . " <input type='checkbox' name='show_gradebook_to_teachers' value='1' ";
+    echo $show_gradebook_to_teachers == 1 ? 'checked=1 ' : ' ';
+    echo "/>";
+        echo "<p>" . __('Show Sync Members to instructors', 'wordpress-mu-ltiadvantage') . " <input type='checkbox' name='show_sync_members_to_teachers' value='1' ";
+    echo $show_sync_members_to_teachers == 1 ? 'checked=1 ' : ' ';
+    echo "/>";
+        echo "<p><input type='submit' class='button-secondary' value='" . __('Save',
+                'wordpress-mu-ltiadvantage') . "' /><input type='hidden' name='action' value='save-settings' /></p>";
+        echo "</form><br />";
         lti_edit();
     }
+}
+
+function lti_store_plugin_settings($show_gradebook_to_teachers, $show_sync_members_to_teachers) {
+    if (is_multisite()) {
+        update_site_option( 'lti_show_gradebook_to_teachers', $show_gradebook_to_teachers );
+        update_site_option( 'lti_show_sync_members_to_teachers', $show_sync_members_to_teachers );
+    } else {
+        update_option( 'lti_show_gradebook_to_teachers', $show_gradebook_to_teachers );
+        update_option( 'lti_show_sync_members_to_teachers', $show_sync_members_to_teachers );
+    }
+}
+function get_lti_show_gradebook_to_teachers() {
+    return is_multisite() ?
+        get_site_option( 'lti_show_gradebook_to_teachers', 1 ) :
+        get_option( 'lti_show_gradebook_to_teachers', 1 );
+}
+function get_lti_show_sync_members_to_teachers() {
+    return is_multisite() ? get_site_option( 'lti_show_sync_members_to_teachers', 1 ) :
+        get_option( 'lti_show_sync_members_to_teachers', 1 );
 }
 
 function lti_generate_public_and_private_key($client_id) {

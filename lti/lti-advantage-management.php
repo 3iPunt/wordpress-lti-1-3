@@ -93,30 +93,32 @@ class LTIAdvantageManagement
 
     public function add_lti_grades_management_menu()
     {
-        add_menu_page(__('LTI Advantage', self::$DOMAIN),
-            __('LTI Advantage', self::$DOMAIN), self::$CAPABILITY_EDITOR_ROLE,
-            'lti_advantage', array($this, 'lti_advantage'));
-        $launch = get_user_meta(get_current_user_id(), 'lti_launch_' . get_current_blog_id(), true);
-        if ($launch) {
-            if ($launch->has_ags()) {
-                add_submenu_page(
-                    'lti_advantage',
-                    __('LTI Grades Management', self::$DOMAIN),
-                    __('LTI Grades Management', self::$DOMAIN),
-                    self::$CAPABILITY_EDITOR_ROLE,
-                    'lti_grades_management',
-                    array($this, 'lti_grades_management')
-                );
-            }
-            if ($launch->has_nrps()) {
-                add_submenu_page(
-                    'lti_advantage',
-                    __('Sync Members', self::$DOMAIN),
-                    __('Sync Members', self::$DOMAIN),
-                    self::$CAPABILITY_EDITOR_ROLE,
-                    'lti_grades_management_syncmembers',
-                    array($this, 'lti_grades_management_syncmembers')
-                );
+        if (get_lti_show_gradebook_to_teachers() || get_lti_show_sync_members_to_teachers()) {
+            add_menu_page(__('LTI Advantage', self::$DOMAIN),
+                __('LTI Advantage', self::$DOMAIN), self::$CAPABILITY_EDITOR_ROLE,
+                'lti_advantage', array($this, 'lti_advantage'));
+            $launch = get_user_meta(get_current_user_id(), 'lti_launch_' . get_current_blog_id(), true);
+            if ($launch) {
+                if ($launch->has_ags() && get_lti_show_gradebook_to_teachers()) {
+                    add_submenu_page(
+                        'lti_advantage',
+                        __('LTI Grades Management', self::$DOMAIN),
+                        __('LTI Grades Management', self::$DOMAIN),
+                        self::$CAPABILITY_EDITOR_ROLE,
+                        'lti_grades_management',
+                        array($this, 'lti_grades_management')
+                    );
+                }
+                if ($launch->has_nrps() && get_lti_show_sync_members_to_teachers()) {
+                    add_submenu_page(
+                        'lti_advantage',
+                        __('Sync Members', self::$DOMAIN),
+                        __('Sync Members', self::$DOMAIN),
+                        self::$CAPABILITY_EDITOR_ROLE,
+                        'lti_grades_management_syncmembers',
+                        array($this, 'lti_grades_management_syncmembers')
+                    );
+                }
             }
         }
     }
@@ -133,8 +135,8 @@ class LTIAdvantageManagement
         </div>
         <?php
         $launch = get_user_meta(get_current_user_id(), 'lti_launch_' . get_current_blog_id(), true);
-        $enabled_ags = $launch && $launch->has_ags() ? 'success' : 'error';
-        $enabled_nrps = $launch && $launch->has_nrps() ? 'success' : 'error';
+        $enabled_ags = $launch && $launch->has_ags() && get_lti_show_gradebook_to_teachers() ? 'success' : 'error';
+        $enabled_nrps = $launch && $launch->has_nrps() && get_lti_show_sync_members_to_teachers() ? 'success' : 'error';
         ?>
         <div class="notice notice-<?php echo $enabled_ags ?>">
             <p><?php _e('Assignment and Grade Services (ags)', self::$DOMAIN) ?></p>
@@ -421,7 +423,8 @@ class LTIAdvantageManagement
         return $comment;
     }
 
-    function save_internal_grade($userid, $grade, $comment) {
+    function save_internal_grade($userid, $grade, $comment)
+    {
         $ret = array('result' => false, 'error' => false);
         if ($userid !== false && $grade !== false) {
             update_option(self::$USER_PREFIX_OPTION . $userid, $grade);
