@@ -21,9 +21,8 @@ interface blogType
 	 *
 	 * Gets the path of blog (URL to site)
 	 * @param JWT Body $jwt_body
-	 * @param unknown_type $domain
 	 */
-	public function getCoursePath($jwt_body, $domain);
+	public function getCoursePath($jwt_body);
 	/**
 	 *
 	 * Set the Language to the blog, as default is using the launch_presentation_locale

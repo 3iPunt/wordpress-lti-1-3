@@ -24,9 +24,9 @@ jQuery(document).ready(function () {
             let comment = jQuery('#comment_' + userid).val();
             console.log("save grade for ", userid, grade);
 
-            jQuery('#saving_grade_' + userid).show();
+            jQuery('#wordpress-lti-saving_grade_' + userid).show();
             jQuery('#container_grade_' + userid).hide();
-            jQuery('#saved_ok_grade_' + userid).hide();
+            jQuery('#wordpress-lti-saved_ok_grade_' + userid).hide();
             let data = {
                 'action': 'save_grade_lti',
                 'userid': userid,
@@ -39,7 +39,7 @@ jQuery(document).ready(function () {
                 if (!json.result) {
                     alert(json.error);
                 } else {
-                    jQuery('#saved_ok_grade_' + userid).show();
+                    jQuery('#wordpress-lti-saved_ok_grade_' + userid).show();
                 }
             })
                 .fail(function (xhr, status, error) {
@@ -47,7 +47,7 @@ jQuery(document).ready(function () {
                     alert(gradesManagementJS.error);
                 }).always(function () {
                 jQuery('#container_grade_' + userid).show();
-                jQuery('#saving_grade_' + userid).hide();
+                jQuery('#wordpress-lti-saving_grade_' + userid).hide();
             });
         }
 

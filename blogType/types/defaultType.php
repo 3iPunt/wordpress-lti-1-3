@@ -30,7 +30,7 @@ class defaultType implements blogType {
 	 * get the course path
 	 * @see blogType::getCoursePath()
 	 */
-	public function getCoursePath($jwt_body, $domain) {
+	public function getCoursePath($jwt_body) {
         $context_id = $jwt_body["https://purl.imsglobal.org/spec/lti/claim/context"]["id"];
         $client_id = is_array($jwt_body['aud']) ? $jwt_body['aud'][0] : $jwt_body['aud'];
 

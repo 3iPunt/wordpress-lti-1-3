@@ -1,0 +1,20 @@
+{
+  "name": "3ipunt/wordpress-lti-1-3",
+  "type": "project",
+  "description": "This is an implementation of LTI 1.3 Advantage on Wordpress",
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/IMSGlobal/lti-1-3-php-library"
+    }
+  ],
+  "authors": [
+    {
+      "name": "Martin Lenord",
+      "email": "ims.m@rtin.dev"
+    }
+  ],
+  "require": {
+    "imsglobal/lti-1p3-tool": "dev-master"
+  }
+}

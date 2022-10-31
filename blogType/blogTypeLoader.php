@@ -64,8 +64,8 @@ class blogTypeLoader {
 		return $this->blogTypeClass->getCourseName($blti);
 	}
 
-	public function getCoursePath($jwt_body, $domain) {
-		return $this->blogTypeClass->getCoursePath($jwt_body, $domain);
+	public function getCoursePath($jwt_body) {
+		return $this->blogTypeClass->getCoursePath($jwt_body);
 	}
 
 	public function getMetaBlog($blti) {

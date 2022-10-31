@@ -1,5 +1,5 @@
 # Wordpress-lti-1-3
-This is a implementation of LTI 1.3 Advantage on Wordpress
+This is an implementation of LTI 1.3 Advantage on Wordpress
 
 This code was developed during the IMS Europe Summit 2018 thanks to [James Rissler](https://github.com/jrissler) and [Martin Lenord](https://github.com/MartinLenord). We are using the PHP Library [https://github.com/IMSGlobal/lti-1-3-php-library](https://github.com/IMSGlobal/lti-1-3-php-library)
 
@@ -41,11 +41,79 @@ The parameters are:
 
 _To create a Platform private and public key you can use ssh-keygen, search on internet how to do that, you will need the private and public key._  
 
+
+
+## Actions
+
+This plugin allows to add some filters and actions
+
+### apply_filters
+
+LTI 1.3 allows to share name and email information:
+
+* _given_name_: Per OIDC specifcations, given name(s) or first name(s) of the End-User. Note that in some cultures, people can have multiple given names; all can be present, with the names being separated by space characters.
+* _family_name_: Per OIDC specifcations, surname(s) or last name(s) of the End-User. Note that in some cultures, people can have multiple family names or no family name; all can be present, with the names being separated by space characters.
+* _name_: Per OIDC specifcations, end-User's full name in displayable form including all name parts, possibly including titles and suffixes, ordered according to the End-User's locale and preferences.
+* _email_: Per OIDC specifcations, end-User's preferred e-mail address.
+
+The Wordpress-lti-1-3 allows to change this value and it is extremely useful when this data is not shared by the Platform (usally an LMS) for anonymization requirements. 
+
+The plugin provides 4 filters to change the value and you can customize like this
+
+The filters are:
+```php
+        $given_name = apply_filters('lti_get_given_name', $lti_data['given_name'] ?? '', $userkey);
+        $family_name =  apply_filters('lti_get_family_name', $lti_data['family_name'] ?? '', $userkey);
+        $email = apply_filters('lti_get_email', $lti_data['email'] ?? '', $userkey);
+        $name = apply_filters('lti_get_name', $lti_data['name'] ?? '', $userkey);        
+```
+
+Then on filters.php has the default implementation of each one and only do anything if the content is empty, for that reason you can add your custom filter with less priority (currently is 99)
+
+Default implementation are:
+````php
+<?php
+
+add_filter('lti_get_given_name', 'lti_filter_get_given_name', 99, 2);
+function lti_filter_get_given_name($given_name, $userkey)
+{
+    if (empty($given_name)) {
+        $given_name = $userkey;
+    }
+    return $given_name;
+}
+
+add_filter('lti_get_family_name', 'lti_filter_get_family_name', 99, 2);
+function lti_filter_get_family_name($family_name, $userkey)
+{
+    if (empty($family_name)) {
+        $family_name = $userkey;
+    }
+    return $family_name;
+}
+
+add_filter('lti_get_name', 'lti_filter_get_name', 99, 2);
+function lti_filter_get_name($name, $userkey)
+{
+    if (empty($name)) {
+        $name = $userkey;
+    }
+    return $name;
+}
+
+add_filter('lti_get_email', 'lti_filter_get_email', 99, 2);
+function lti_filter_get_email($email, $userkey)
+{
+    if (empty($email)) {
+        $email = $userkey . '@nomail.com';
+    }
+    return $email;
+}
+````
+
+
+
+
 ## Next steps
 
 * Certificate it! 
-
-
-
-
-

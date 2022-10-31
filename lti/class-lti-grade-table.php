@@ -25,8 +25,8 @@ class LTI_Grade_Table extends WP_List_Table
     public function __construct($args = array(), $student_role = 'subscriber')
     {
         $args = wp_parse_args($args, array(
-            'plural' => __('Students', LTIGradesManagement::$DOMAIN),
-            'singular' => __('Student', LTIGradesManagement::$DOMAIN),
+            'plural' => __('Students', LTIAdvantageManagement::$DOMAIN),
+            'singular' => __('Student', LTIAdvantageManagement::$DOMAIN),
             'ajax' => false,
             'screen' => null,
         ));
@@ -56,13 +56,15 @@ class LTI_Grade_Table extends WP_List_Table
     public function get_columns()
     {
 
-        $columns = array('student' => __('Student', LTIGradesManagement::$DOMAIN));
+        $columns = array('student' => __('Student', LTIAdvantageManagement::$DOMAIN));
         foreach ($this->post_types as $post_type) {
-            $columns[$post_type] = sprintf(__('"%s" type', LTIGradesManagement::$DOMAIN), $post_type);
+            $columns[$post_type] = sprintf(__('"%s" type', LTIAdvantageManagement::$DOMAIN), $post_type);
         }
 
-        $columns['comments'] = __('Total comments', LTIGradesManagement::$DOMAIN);
-        $columns['grade'] = __('Grade', LTIGradesManagement::$DOMAIN);
+        $columns['comments'] = __('Total comments', LTIAdvantageManagement::$DOMAIN);
+        $columns['grade'] = __('Grade', LTIAdvantageManagement::$DOMAIN);
+        $columns['comment'] = __('Comment', LTIAdvantageManagement::$DOMAIN);
+        $columns['action'] = '';
 
         return $columns;
     }
@@ -164,7 +166,11 @@ class LTI_Grade_Table extends WP_List_Table
                 return $item[$column_name] > 0 ? '<a href=' . $this->get_page('comments',
                         $item['ID']) . ' target="_blank">' . $item[$column_name] . '</a>' : 0;
             case 'grade':
-                return $this->printGrade(LTIGradesManagement::lti_grades_get_user_grade($item['ID']), LTIGradesManagement::lti_grades_get_user_comment($item['ID']), $item['ID']);
+                return $this->printGrade(LTIAdvantageManagement::lti_grades_get_user_grade($item['ID']), $item['ID']);
+            case 'comment':
+                return $this->printComment(LTIAdvantageManagement::lti_grades_get_user_comment($item['ID']), $item['ID']);
+            case 'action':
+                return $this->printActions($item['ID']);
             default:
                 return print_r($item, true);
         }
@@ -172,28 +178,44 @@ class LTI_Grade_Table extends WP_List_Table
 
     /**
      * @param $grade
+     * @param $user_id
+     * @return string
+     */
+    private function printGrade($grade, $user_id)
+    {
+        $select = '<span id="container_grade_' . $user_id . '">';
+        $select .= '<select name="grade_' . $user_id . '" id="grade_' . $user_id . '">' .
+            '<option>' . __('Select one', LTIAdvantageManagement::$DOMAIN) . '</option>' .
+            $this->returnGradeOptions(LTIAdvantageManagement::$MIN_GRADE, LTIAdvantageManagement::$MAX_GRADE, 1, $grade) .
+            '</select>';
+
+        return $select;
+    }
+    /**
      * @param $comment
      * @param $user_id
      * @return string
      */
-    private function printGrade($grade, $comment, $user_id)
+    private function printComment($comment, $user_id)
     {
-        $select = '<span id="container_grade_' . $user_id . '">';
-        $select .= '<select name="grade_' . $user_id . '" id="grade_' . $user_id . '">' .
-            '<option>' . __('Select one', LTIGradesManagement::$DOMAIN) . '</option>' .
-            $this->returnGradeOptions(LTIGradesManagement::$MIN_GRADE, LTIGradesManagement::$MAX_GRADE, 1, $grade) .
-            '</select>';
+        $select = '<textarea id="comment_' . $user_id . '" placeholder="' . __('Comment',
+                LTIAdvantageManagement::$DOMAIN) . '">'.$comment.'</textarea>';
 
-        $select .= '<textarea id="comment_' . $user_id . '" placeholder="' . __('Comment',
-                LTIGradesManagement::$DOMAIN) . '">'.$comment.'</textarea>';
-
-        $select .= '<button data-userid="' . $user_id . '" class="save_grade button button-secondary">' . __('Save',
-                LTIGradesManagement::$DOMAIN) . '</button>';
+        return $select;
+    }
+    /**
+     * @param $user_id
+     * @return string
+     */
+    private function printActions($user_id)
+    {
+        $select = '<button data-userid="' . $user_id . '" class="save_grade button button-secondary">' . __('Save',
+                LTIAdvantageManagement::$DOMAIN) . '</button>';
         $select .= '</span>';
-        $select .= '<span class="saved_ok_grade notice notice-success" id="saved_ok_grade_' . $user_id . '">' . __('Saved',
-                LTIGradesManagement::$DOMAIN) . '</span>';
-        $select .= '<span class="saving_grade" id="saving_grade_' . $user_id . '"><img class="waiting" src="' . esc_url(admin_url('images/wpspin_light-2x.gif')) . '"/>' . __('Saving...',
-                LTIGradesManagement::$DOMAIN) . '</span>';
+        $select .= '<span class="wordpress-lti-saved_ok_grade notice notice-success" id="wordpress-lti-saved_ok_grade_' . $user_id . '">' . __('Saved',
+                LTIAdvantageManagement::$DOMAIN) . '</span>';
+        $select .= '<span class="wordpress-lti-saving_grade" id="wordpress-lti-saving_grade_' . $user_id . '"><img class="waiting" src="' . esc_url(admin_url('images/wpspin_light-2x.gif')) . '"/>' . __('Saving...',
+                LTIAdvantageManagement::$DOMAIN) . '</span>';
 
         return $select;
     }
