@@ -486,7 +486,7 @@ class LTIAdvantageManagement
             $ret['result'] = false;
             $ret['error'] = __('You are not allowed to perform this operation', self::$DOMAIN);
         } else {
-            $this->save_internal_grade($userid, $grade, $comment);
+            $ret = $this->save_internal_grade($userid, $grade, $comment);
         }
         echo json_encode($ret);
 
