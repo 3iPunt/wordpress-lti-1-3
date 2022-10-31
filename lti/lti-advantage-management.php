@@ -490,7 +490,7 @@ class LTIAdvantageManagement
         }
         echo json_encode($ret);
 
-        wp_die(); // this is required to terminate immediately and return a proper response
+        exit(); // this is required to terminate immediately and return a proper response
     }
 
     /**
