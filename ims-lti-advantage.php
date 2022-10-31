@@ -131,7 +131,8 @@ function lti_client_id_admin()
 
     if (!$is_editing) {
         $search_str = $_POST['search_txt'] ?? '';
-        $action = $_POST['action'] ?? 'search';
+        echo "<h3>" . __('Current Tool Settings', 'wordpress-mu-ltiadvantage') . "</h3>";
+        lti_show_launch();
         echo "<h3>" . __('Search', 'wordpress-mu-ltiadvantage') . "</h3>";
         $escaped_search = addslashes($search_str);
         $rows = $wpdb->get_results("SELECT * FROM " . lti_13_get_table() . " WHERE client_id LIKE '%{$escaped_search}%' ");
@@ -340,7 +341,7 @@ function lti_show_launch($row = false)
         </div>' .
         '</td></tr>';
     echo '<tr><th>' . __('URL JWKS',
-            'wordpress-mu-ltiadvantage') . '</th><td><input type="text" id="jwksUrl" size="60" value="' . plugin_dir_url(__FILE__) . 'lti/jwks.php?kid=' . $row->client_id . '" readonly="readonly"/>' .
+            'wordpress-mu-ltiadvantage') . '</th><td><input type="text" id="jwksUrl" size="60" value="' . plugin_dir_url(__FILE__) . 'lti/jwks.php' . ($row ? '?kid=' . $row->client_id : '') . '" readonly="readonly"/>' .
         '<div class="wordpress-lti-tooltip">
             <button class="button-secondary" onclick="wordpress_lti_copy(\'jwksUrl\', \'jwksUrlTooltip\')" onmouseout="wordpress_lti_copy_outFunc(\'jwksUrlTooltip\')">
               <span class="wordpress-lti-tooltiptext" id="jwksUrlTooltip">' . __('Copy to clipboard', 'wordpress-mu-ltiadvantage') . '</span>
@@ -348,20 +349,22 @@ function lti_show_launch($row = false)
               </button>
         </div>' .
         '</td></tr>';
-    $keys = [$row->client_id => $row->private_key];
+    if ($row) {
+        $keys = [$row->client_id => $row->private_key];
 
-    $jwksInfo = json_encode(LTI\JWKS_Endpoint::new($keys)->get_public_jwks());
-    echo '<tr><th>' . __('JWKS Info',
-            'wordpress-mu-ltiadvantage') . '</th><td><textarea readonly cols="60" rows="4" id="jwksInfo">' . $jwksInfo . '</textarea>'.
-        '<div class="wordpress-lti-tooltip">
+        $jwksInfo = json_encode(LTI\JWKS_Endpoint::new($keys)->get_public_jwks());
+        echo '<tr><th>' . __('JWKS Info',
+                'wordpress-mu-ltiadvantage') . '</th><td><textarea readonly cols="60" rows="4" id="jwksInfo">' . $jwksInfo . '</textarea>' .
+            '<div class="wordpress-lti-tooltip">
             <button class="button-secondary" onclick="wordpress_lti_copy(\'jwksInfo\', \'jwksInfoTooltip\')" onmouseout="wordpress_lti_copy_outFunc(\'jwksInfoTooltip\')">
               <span class="wordpress-lti-tooltiptext" id="jwksUrlTooltip">' . __('Copy to clipboard', 'wordpress-mu-ltiadvantage') . '</span>
               ' . __('Copy text', 'wordpress-mu-ltiadvantage') . '
               </button>
         </div>' .
-        '</td></tr>';
-    echo '</table>';
+            '</td></tr>';
 
+    }
+    echo '</table>';
 }
 
 function lti_network_warning()

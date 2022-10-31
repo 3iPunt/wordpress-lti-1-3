@@ -44,7 +44,7 @@ class LTIAdvantageManagement
             $this->client_id = is_array($launch_data['aud']) ? $launch_data['aud'][0] : $launch_data['aud'];
             $this->lti_issuer = $launch_data['iss'];
             $this->lti_deployment_id = $launch_data['https://purl.imsglobal.org/spec/lti/claim/deployment_id'];
-            $this->lti_custom_params = $launch_data['https://purl.imsglobal.org/spec/lti/claim/custom'];
+            $this->lti_custom_params = $launch_data['https://purl.imsglobal.org/spec/lti/claim/custom'] ?? [];
             if ($this->client_id && $this->lti_issuer) {
                 $this->client = LTIUtils::lti_get_by_client_id($this->client_id);
                 if ($this->client) {
@@ -99,6 +99,7 @@ class LTIAdvantageManagement
                 'lti_advantage', array($this, 'lti_advantage'));
             $launch = get_user_meta(get_current_user_id(), 'lti_launch_' . get_current_blog_id(), true);
             if ($launch) {
+
                 if ($launch->has_ags() && get_lti_show_gradebook_to_teachers()) {
                     add_submenu_page(
                         'lti_advantage',

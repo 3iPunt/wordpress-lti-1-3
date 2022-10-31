@@ -126,8 +126,8 @@ class defaultType implements blogType {
 	 */
 	public function roleMapping($roles, $student_role=false) {
 
-		if ($this->check_role_contains("Administrator", $roles)) return "administrator";
-	    elseif ($this->check_role_contains("Instructor", $roles)) return "editor";
+		//if ($this->check_role_contains("Administrator", $roles)) return "administrator";
+	    if ($this->check_role_contains("Instructor", $roles)) return "editor";
 	    elseif ($this->check_role_contains("Learner", $roles)) return $student_role?$student_role:"subscriber";
 	    else return "subscriber";
 

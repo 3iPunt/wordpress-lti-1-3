@@ -31,10 +31,10 @@ function parse_launch_lti_13($client_id, LTI\LTI_Message_Launch $launch)
         //deactivate_plugins( $plugin, true );
 
         $lti_data = $launch->get_launch_data();
-        $issuer_id = $lti_data['iss'];
-        $deployment_id = $lti_data['https://purl.imsglobal.org/spec/lti/claim/deployment_id'];
+        // $issuer_id = $lti_data['iss'];
+        // $deployment_id = $lti_data['https://purl.imsglobal.org/spec/lti/claim/deployment_id'] ?? '';
         $lti_user_id = $lti_data['sub'];
-        $custom_params = $lti_data['https://purl.imsglobal.org/spec/lti/claim/custom'];
+        $custom_params = $lti_data['https://purl.imsglobal.org/spec/lti/claim/custom'] ?? [];
         $blogType = new blogTypeLoader(isset($custom_params['blogtype']) ? $custom_params['blogtype'] : 'defaultType');
 
         if ($blogType->error < 0) {
@@ -207,10 +207,7 @@ function parse_launch_lti_13($client_id, LTI\LTI_Message_Launch $launch)
     wp_set_current_user($user->ID, $userkey);
     do_action('uoc_create_site_user_login', $user);
 
-    if ($launch->has_nrps()) {
-        update_option('lti_namesroleservice', $lti_data['https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice']);
-        add_user_meta($user->ID, 'lti_launch_' . $blog_id, $launch);
-    }
+    add_user_meta($user->ID, 'lti_launch_' . $blog_id, $launch);
 
 
     if ($redirecturl = $blogType->force_redirect_to_url()) {
