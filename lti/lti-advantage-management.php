@@ -313,11 +313,7 @@ class LTIAdvantageManagement
 
         if ($launch && $launch->has_nrps()) {
 
-            $lti_conf = LTIUtils::lti_get_by_client_id($client_id);
-            $student_role = false;
-            if (isset($lti_conf)) {
-                $student_role = $lti_conf->student_role;
-            }
+            $student_role = $this->client->student_role;
             $this->members_result = [];
             $members = $launch->get_nrps()->get_members();
             if ($members) {
