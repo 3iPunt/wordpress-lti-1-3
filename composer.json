@@ -1,6 +1,6 @@
 {
   "name": "3ipunt/wordpress-lti-1-3",
-  "type": "project",
+  "type": "wordpress-plugin",
   "description": "This is an implementation of LTI 1.3 Advantage on Wordpress",
   "repositories": [
     {
