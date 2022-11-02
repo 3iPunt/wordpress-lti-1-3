@@ -517,17 +517,6 @@ function lti_plugins_loaded_plugin()
     load_muplugin_textdomain('wordpress-mu-ltiadvantage', 'lang');
 }
 
-register_activation_hook(__FILE__, 'add_lti_plugin_activate');
-function add_lti_plugin_activate()
-{
-
-    // Require parent plugin
-    if (!is_plugin_active('wp-session-manager/wp-session-manager.php')) {
-        // Stop activation redirect and show error
-        wp_die('Sorry, but this plugin requires the wp-session-manager to be installed and active. <br><a href="' . admin_url('plugins.php') . '">&laquo; Return to Plugins</a>');
-    }
-}
-
 /**
  * Generates a private and public key
  * @return array
