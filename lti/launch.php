@@ -210,7 +210,7 @@ function parse_launch_lti_13($client_id, LTI\LTI_Message_Launch $launch)
     add_user_meta($user->ID, 'lti_launch_' . $blog_id, $launch);
 
 
-    if ($redirecturl = $blogType->force_redirect_to_url()) {
+    if ($redirecturl = $blogType->force_redirect_to_url( $custom_params )) {
         wp_redirect($redirecturl);
         exit();
     }

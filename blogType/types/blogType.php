@@ -70,6 +70,12 @@ interface blogType
      */
     public function isAuthorizedUserInCourse($roles);
 
+	/**
+	 * @$custom_params array
+	 * Force to redirect if returns false don't redirect
+	 */
+	public function force_redirect_to_url($custom_params);
+
 
 }
 ?>

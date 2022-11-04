@@ -204,10 +204,10 @@ class defaultType implements blogType {
     }
 
     /**
-     *
+     * @$custom_params array
      * Force to redirect if returns false don't redirect
      */
-    public function force_redirect_to_url() {
+    public function force_redirect_to_url($custom_params) {
         return false;
     }
 }
