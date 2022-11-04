@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../../../wp-config.php';
+require_once file_exists(__DIR__ . '/../../../wp-config.php') ? __DIR__ . '/../../../wp-config.php' : __DIR__ . '/../../../../wp-config.php';
 require_once __DIR__ . '/../ims-lti-advantage.php';
 
 use \IMSGlobal\LTI;

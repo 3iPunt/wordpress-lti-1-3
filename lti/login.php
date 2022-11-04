@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/wordpresslti_database.php';
-require_once __DIR__ . '/../../../wp-config.php';
+require_once file_exists(__DIR__ . '/../../../wp-config.php') ? __DIR__ . '/../../../wp-config.php' : __DIR__ . '/../../../../wp-config.php';
 
 use \IMSGlobal\LTI;
 
