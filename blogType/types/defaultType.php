@@ -197,6 +197,7 @@ class defaultType implements blogType {
 
  	if (in_array("http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator", $roles)
             || in_array("http://purl.imsglobal.org/vocab/lis/v2/institution/person#Instructor", $roles)
+            || in_array("http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor", $roles)
 	    || in_array("http://purl.imsglobal.org/vocab/lis/v2/membership#Learner", $roles))    	    {
 	 $auth = true;
 	}
