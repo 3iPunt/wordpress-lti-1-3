@@ -427,7 +427,7 @@ class LTIAdvantageManagement
             update_option(self::$USER_PREFIX_OPTION . $userid, $grade);
             update_option(self::$USER_PREFIX_OPTION_COMMENT . $userid, $comment);
             $lti_user_id = get_user_meta($userid, self::$LTI_METAKEY_USER_ID, true);
-            $launch = get_user_meta(get_current_user_id(), 'lti_launch_' . get_current_blog_id(), true);
+            $launch = get_user_meta($userid, 'lti_launch_' . get_current_blog_id(), true);
             if ($lti_user_id && $launch && $launch->has_ags()) {
 
                 $grades = $launch->get_ags();
