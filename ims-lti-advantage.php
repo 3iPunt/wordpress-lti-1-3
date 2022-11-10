@@ -247,10 +247,10 @@ function lti_edit($row = false)
     echo $row->enabled == 1 ? 'checked=1 ' : ' ';
     echo "/></td></tr>\n";
 
-    echo "<tr><th>" . __('Grade Column tag',
+    /*echo "<tr><th>" . __('Grade Column tag',
             'wordpress-mu-ltiadvantage') . "</th><td><input type='text' name='grade_column_tag' value='{$row->grade_column_tag}' /></td></tr>\n";
     echo "<tr><th>" . __('Grade Column name',
-            'wordpress-mu-ltiadvantage') . "</th><td><input type='text' name='grade_column_name' value='{$row->grade_column_name}' /></td></tr>\n";
+            'wordpress-mu-ltiadvantage') . "</th><td><input type='text' name='grade_column_name' value='{$row->grade_column_name}' /></td></tr>\n";*/
 
     $options = '<option value="subscriber" ' . ($row->student_role == 'subscriber' ? 'selected' : '') . '>' . __('Subscriber',
             'wordpress-mu-ltiadvantage') . '</option>';

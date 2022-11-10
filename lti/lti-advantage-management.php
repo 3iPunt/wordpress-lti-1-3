@@ -441,7 +441,7 @@ class LTIAdvantageManagement
                     ->set_user_id($lti_user_id);
 
 
-                $tag = $this->client->grade_column_tag;
+                /*$tag = $this->client->grade_column_tag;
                 $label = $this->client->grade_column_name;
                 $score_lineitem = LTI\LTI_Lineitem::new()
                     ->set_tag($tag)
@@ -449,9 +449,9 @@ class LTIAdvantageManagement
                     ->set_label($label)
                     ->set_start_date_time('')
                     ->set_end_date_time('')
-                    ->set_resource_id($launch->get_launch_data()['https://purl.imsglobal.org/spec/lti/claim/resource_link']['id']);
+                    ->set_resource_id($launch->get_launch_data()['https://purl.imsglobal.org/spec/lti/claim/resource_link']['id']);*/
 
-                $success = $grades->put_grade($score, $score_lineitem);
+                $success = $grades->put_grade($score, null);
 
                 $ret['result'] = $success;
                 if (!$success) {
