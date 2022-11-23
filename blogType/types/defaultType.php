@@ -22,7 +22,7 @@ class defaultType implements blogType {
 	 * @see blogType::getCourseName()
 	 */
 	public function getCourseName($jwt_body) {
-	    $title = $context_id = $jwt_body["https://purl.imsglobal.org/spec/lti/claim/context"]["title"];
+	    $title = $jwt_body["https://purl.imsglobal.org/spec/lti/claim/context"]["title"];
 		return $title;
 	}
 
