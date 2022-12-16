@@ -42,9 +42,14 @@ function lti_client_id_admin()
         $client_id = $_POST['client_id'] ?? '';
         switch ($_POST['action']) {
             case "edit":
+            case "editkeys":
                 $row = LTIUtils::lti_get_by_client_id($client_id);
                 if ($row) {
-                    lti_edit($row);
+                    if ($_POST['action'] == 'editkeys') {
+                        lti_edit_keys($row);
+                    } else {
+                        lti_edit($row);
+                    }
                     $is_editing = true;
                 } else {
                     ?>
@@ -117,6 +122,19 @@ function lti_client_id_admin()
                                     'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
                 }
                 break;
+            case "save_keys":
+                $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . lti_13_get_table() . " WHERE client_id = %s",
+                    $client_id));
+                if ($row) {
+                    $private_key = isset($_POST['private_key']) ? $_POST['private_key'] : '';
+                    $public_key = isset($_POST['public_key']) ? $_POST['public_key'] : '';
+                    $wpdb->query($wpdb->prepare("UPDATE " . lti_13_get_table() . " SET  private_key = %s, public_key = %s  WHERE client_id = %s",
+                        $private_key, $public_key, $client_id));
+                    ?>
+                    <div id="message" class="updated fade"><p><strong><?php _e('Keys updated.',
+                                    'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
+                }
+                break;
             case "del":
                 $wpdb->query($wpdb->prepare("DELETE FROM " . lti_13_get_table() . " WHERE client_id = %s", $client_id));
                 ?>
@@ -124,7 +142,7 @@ function lti_client_id_admin()
                                 'wordpress-mu-ltiadvantage') ?></strong></p></div> <?php
                 break;
             case "save-settings":
-                lti_store_plugin_settings($_POST['show_gradebook_to_teachers'] ?? 0, $_POST['show_sync_members_to_teachers'] ?? 0);
+                lti_store_plugin_settings($_POST['show_gradebook_to_teachers'] ?? 0, $_POST['show_sync_members_to_teachers'] ?? 0, $_POST['lti_public_and_private_key_length'] ?? 0);
                 break;
         }
     }
@@ -151,6 +169,7 @@ function lti_client_id_admin()
 
         $show_gradebook_to_teachers = get_lti_show_gradebook_to_teachers();
         $show_sync_members_to_teachers = get_lti_show_sync_members_to_teachers();
+        $lti_public_and_private_key_length = get_lti_public_and_private_key_length();
 
         echo '<form method="POST">';
         wp_nonce_field('lti');
@@ -161,6 +180,9 @@ function lti_client_id_admin()
         echo "<p>" . __('Show Sync Members to instructors', 'wordpress-mu-ltiadvantage') . " <input type='checkbox' name='show_sync_members_to_teachers' value='1' ";
     echo $show_sync_members_to_teachers == 1 ? 'checked=1 ' : ' ';
     echo "/>";
+        echo "<p>" . __('Use 512 bit to generate key (256 bit if disabled)', 'wordpress-mu-ltiadvantage') . " <input type='checkbox' name='lti_public_and_private_key_length' value='1' ";
+    echo $lti_public_and_private_key_length == 1 ? 'checked=1 ' : ' ';
+    echo "/>";
         echo "<p><input type='submit' class='button-secondary' value='" . __('Save',
                 'wordpress-mu-ltiadvantage') . "' /><input type='hidden' name='action' value='save-settings' /></p>";
         echo "</form><br />";
@@ -168,13 +190,15 @@ function lti_client_id_admin()
     }
 }
 
-function lti_store_plugin_settings($show_gradebook_to_teachers, $show_sync_members_to_teachers) {
+function lti_store_plugin_settings($show_gradebook_to_teachers, $show_sync_members_to_teachers, $lti_public_and_private_key_length) {
     if (is_multisite()) {
         update_site_option( 'lti_show_gradebook_to_teachers', $show_gradebook_to_teachers );
         update_site_option( 'lti_show_sync_members_to_teachers', $show_sync_members_to_teachers );
+        update_site_option( 'lti_public_and_private_key_length', $lti_public_and_private_key_length );
     } else {
         update_option( 'lti_show_gradebook_to_teachers', $show_gradebook_to_teachers );
         update_option( 'lti_show_sync_members_to_teachers', $show_sync_members_to_teachers );
+        update_option( 'lti_public_and_private_key_length', $lti_public_and_private_key_length );
     }
 }
 function get_lti_show_gradebook_to_teachers() {
@@ -186,10 +210,14 @@ function get_lti_show_sync_members_to_teachers() {
     return is_multisite() ? get_site_option( 'lti_show_sync_members_to_teachers', 1 ) :
         get_option( 'lti_show_sync_members_to_teachers', 1 );
 }
+function get_lti_public_and_private_key_length() {
+    return is_multisite() ? get_site_option( 'lti_public_and_private_key_length', 1 ) :
+        get_option( 'lti_public_and_private_key_length', 1 );
+}
 
 function lti_generate_public_and_private_key($client_id) {
     global $wpdb;
-    $keys = lti_generate_private_public_key();
+    $keys = lti_generate_private_public_key(get_lti_public_and_private_key_length());
 
     return $wpdb->query($wpdb->prepare("UPDATE " . lti_13_get_table() . " SET  private_key = %s, public_key = %s  WHERE client_id = %s",
         $keys['privKey'], $keys['pubKey'], $client_id));
@@ -271,6 +299,26 @@ function lti_edit($row = false)
         echo "<form method='POST'><input type='hidden' name='action' value='generate_priv_pub_key' /><p><input type='submit' class='button-primary' value='" . __('Generate new private and public key',
                 'wordpress-mu-ltiadvantage') . "' /></p>" . wp_nonce_field('lti') . "<input type='hidden' name='client_id' value='{$row->client_id}' /></form><br /><br />";
     }
+}
+
+function lti_edit_keys($row = false)
+{
+    echo "<h3>" . __('Edit LTI', 'wordpress-mu-ltiadvantage') . "</h3>";
+
+    echo "<form method='POST'><input type='hidden' name='action' value='save_keys' />";
+    wp_nonce_field('lti');
+    echo "<table class='form-table'>\n";
+    echo "<tr><th>" . __('Client id',
+            'wordpress-mu-ltiadvantage') . "</th><td><input type='text' name='client_id' value='{$row->client_id}' readonly='readonly'/></td></tr>\n";
+    echo "<tr><th>" . __('Public key',
+            'wordpress-mu-ltiadvantage') . "</th><td><textarea name='public_key' cols='60' rows  ='5'>" . $row->public_key . "</textarea>";
+    echo "</td></tr>\n";
+    echo "<tr><th>" . __('Private key',
+            'wordpress-mu-ltiadvantage') . "</th><td><textarea name='private_key' cols='60' rows  ='5'>" . $row->private_key . "</textarea>";
+    echo "</td></tr>\n";
+    echo "</table>";
+    echo "<p><input type='submit' class='button-primary' value='" . __('Save',
+            'wordpress-mu-ltiadvantage') . "' /></p></form>";
 }
 
 function lti_show_keys($row = false)
@@ -481,6 +529,7 @@ function lti_listing($rows, $heading = '')
                 'wordpress-mu-ltiadvantage') . '</th><th>' . __('Enabled',
                 'wordpress-mu-ltiadvantage') . '</th><th>' . __('Show config information',
                 'wordpress-mu-ltiadvantage') . '</th><th>' . __('Edit',
+                'wordpress-mu-ltiadvantage') . '</th><th>' . __('Edit keys',
                 'wordpress-mu-ltiadvantage') . '</th><th>' . __('Delete',
                 'wordpress-mu-ltiadvantage') . '</th></tr></thead><tbody>';
         foreach ($rows as $row) {
@@ -496,6 +545,10 @@ function lti_listing($rows, $heading = '')
             echo "</td><td><form method='POST'><input type='hidden' name='action' value='edit' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
             wp_nonce_field('lti');
             echo "<input type='submit' class='button-secondary' value='" . __('Edit',
+                    'wordpress-mu-ltiadvantage') . "' /></form></td>";
+            echo "</td><td><form method='POST'><input type='hidden' name='action' value='editkeys' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
+            wp_nonce_field('lti');
+            echo "<input type='submit' class='button-secondary' value='" . __('Edit keys',
                     'wordpress-mu-ltiadvantage') . "' /></form></td>";
             echo "<td><form method='POST'><input type='hidden' name='action' value='del' /><input type='hidden' name='client_id' value='{$row->client_id}' />";
             wp_nonce_field('lti');
@@ -519,15 +572,24 @@ function lti_plugins_loaded_plugin()
 
 /**
  * Generates a private and public key
+ * @param $use512bits
  * @return array
  */
-function lti_generate_private_public_key()
+function lti_generate_private_public_key($use512bits = true)
 {
-    $config = array(
-        "digest_alg" => "sha512",
-        "private_key_bits" => 4096,
-        "private_key_type" => OPENSSL_KEYTYPE_RSA,
-    );
+    if ($use512bits) {
+        $config = array(
+            "digest_alg" => "sha512",
+            "private_key_bits" => 4096,
+            "private_key_type" => OPENSSL_KEYTYPE_RSA,
+        );
+    } else {
+        $config = array(
+            "digest_alg" => "sha256",
+            "private_key_bits" => 2048,
+            "private_key_type" => OPENSSL_KEYTYPE_RSA,
+        );
+    }
 
 // Create the private and public key
     $res = openssl_pkey_new($config);
