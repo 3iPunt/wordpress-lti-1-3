@@ -207,6 +207,7 @@ function parse_launch_lti_13($client_id, LTI\LTI_Message_Launch $launch)
     wp_set_current_user($user->ID, $userkey);
     do_action('uoc_create_site_user_login', $user);
 
+    delete_user_meta($user->ID, 'lti_launch_' . $blog_id);
     add_user_meta($user->ID, 'lti_launch_' . $blog_id, $launch);
 
     include_once __DIR__ . '/advanced-iframe-main-cookie.php';
