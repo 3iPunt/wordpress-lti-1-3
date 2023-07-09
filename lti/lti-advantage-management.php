@@ -434,7 +434,7 @@ class LTIAdvantageManagement
                 $score = LTI\LTI_Grade::new()
                     ->set_score_given($grade)
                     ->set_score_maximum(self::$MAX_GRADE)
-                    ->set_timestamp(date(DateTime::ISO8601))
+                    ->set_timestamp(date(DateTime::ATOM))
                     ->set_activity_progress(self::$ACTIVITY_PROGRESS)
                     ->set_grading_progress(self::$GRADING_PROGRESS)
                     ->set_comment($comment)
