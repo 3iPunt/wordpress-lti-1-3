@@ -29,6 +29,7 @@ class WordPressLTI_Database implements LTI\Database {
             ->set_key_set_url($this->tools[$iss]->key_set_url)
             // ->set_kid($_SESSION['iss'][$iss]['kid'])
             ->set_issuer($iss)
+            ->set_kid($this->tools[$iss]->client_id)
             ->set_tool_private_key($this->tools[$iss]->private_key);
     }
 
